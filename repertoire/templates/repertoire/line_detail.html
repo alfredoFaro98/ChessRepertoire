@@ -1,0 +1,390 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>{{ opening.nome }} — Linea {{ line.numero }}</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .container {
+    display: flex;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+
+  .board-container {
+    padding: 20px;
+    background: #dfe3e6;
+  }
+
+  .board {
+    width: 480px;
+    height: 480px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 4px solid #333;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: background 0.3s;
+  }
+
+  .light { background: #eeeed2; }
+  .dark { background: #769656; }
+
+  .highlight-from { background: #f6f669 !important; }
+  .highlight-to { background: #b3e283 !important; }
+
+  .sidebar {
+    width: 300px;
+    background: #fff;
+    border-left: 2px solid #ccc;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 15px;
+    background: #2c3e50;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  table.move-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table.move-table tr:nth-child(even) { background: #f8f8f8; }
+
+  table.move-table td {
+    padding: 6px 10px;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  table.move-table td.number {
+    width: 30px;
+    font-weight: bold;
+    color: #666;
+  }
+
+  td.move {
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  td.move:hover {
+    background: #d0ebd0;
+  }
+
+  td.move.active {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .move-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+  }
+
+  .controls {
+    border-top: 1px solid #ddd;
+    padding: 10px;
+    display: flex;
+    justify-content: space-around;
+    background: #fafafa;
+  }
+
+  .controls button {
+    font-size: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 8px;
+    transition: 0.2s;
+  }
+
+  .controls button:hover {
+    color: #2ecc71;
+  }
+  .btn-nav {
+  text-decoration: none;
+  background: #4CAF50;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.btn-nav:hover {
+  background: #43a047;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="board-container">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+  {{ opening.nome }} — Linea {{ line.numero }} di {{ total_lines }}
+</div>
+
+{% if prev_line or next_line %}
+  <div style="display:flex; justify-content:space-between; align-items:center; background:#f2f2f2; padding:8px 12px; border-bottom:1px solid #ddd;">
+    {% if prev_line %}
+      <a href="{% url 'line_detail' opening.id prev_line.id %}" class="btn-nav">⬅ Linea {{ prev_line.numero }}</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+
+    {% if next_line %}
+      <a href="{% url 'line_detail' opening.id next_line.id %}" class="btn-nav">Linea {{ next_line.numero }} ➡</a>
+    {% else %}
+      <span></span>
+    {% endif %}
+  </div>
+{% endif %}
+
+
+    <div class="move-list-container">
+      <table class="move-table" id="moveTable"><tbody></tbody></table>
+    </div>
+
+    <div class="controls">
+      <button id="firstMove">⏮</button>
+      <button id="prevMove">⬅</button>
+      <button id="nextMove">➡</button>
+      <button id="lastMove">⏭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const boardEl = document.getElementById('board');
+const files = ['a','b','c','d','e','f','g','h'];
+const ranks = [8,7,6,5,4,3,2,1];
+const cells = {};
+for (let r=0;r<8;r++){
+  for (let f=0;f<8;f++){
+    const id = files[f]+ranks[r];
+    const d = document.createElement('div');
+    d.className = 'cell ' + ((r+f)%2===0?'light':'dark');
+    d.id = id;
+    boardEl.appendChild(d);
+    cells[id]=d;
+  }
+}
+
+const pieceImgs = {
+  w: {
+    P: "https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg",
+    N: "https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg",
+    B: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg",
+    R: "https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg",
+    Q: "https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg",
+    K: "https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg",
+  },
+  b: {
+    P: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg",
+    N: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg",
+    B: "https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg",
+    R: "https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg",
+    Q: "https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg",
+    K: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg",
+  }
+};
+
+const start = {
+  a8:'bR',b8:'bN',c8:'bB',d8:'bQ',e8:'bK',f8:'bB',g8:'bN',h8:'bR',
+  a7:'bP',b7:'bP',c7:'bP',d7:'bP',e7:'bP',f7:'bP',g7:'bP',h7:'bP',
+  a2:'wP',b2:'wP',c2:'wP',d2:'wP',e2:'wP',f2:'wP',g2:'wP',h2:'wP',
+  a1:'wR',b1:'wN',c1:'wB',d1:'wQ',e1:'wK',f1:'wB',g1:'wN',h1:'wR'
+};
+
+let board = JSON.parse(JSON.stringify(start));
+let enPassantSquare = null;
+
+function draw() {
+  for (const sq in cells) {
+    const piece = board[sq];
+    if (!piece) cells[sq].innerHTML = "";
+    else {
+      const color = piece[0];
+      const type = piece[1];
+      const img = pieceImgs[color][type];
+      cells[sq].innerHTML = `<img src="${img}" style="width:90%;height:90%;">`;
+    }
+  }
+}
+draw();
+
+function cleanPGN(pgn){
+  return pgn.replace(/{[^}]*}/g,'')
+            .replace(/\([^)]*\)/g,'')
+            .replace(/\$\d+/g,'')
+            .replace(/\d+\.(\.\.)?/g,' ')
+            .replace(/[+#!?]/g,'')
+            .trim()
+            .split(/\s+/)
+            .filter(x=>x && !['1-0','0-1','1/2-1/2','*'].includes(x));
+}
+const moves=cleanPGN(`{{ line.pgn|escapejs }}`);
+let idx=0, side='w';
+
+const table=document.getElementById('moveTable').querySelector('tbody');
+for(let i=0;i<moves.length;i+=2){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td class="number">${Math.floor(i/2)+1}</td>
+                <td class="move" data-index="${i}">${moves[i]||''}</td>
+                <td class="move" data-index="${i+1}">${moves[i+1]||''}</td>`;
+  table.appendChild(tr);
+}
+
+document.querySelectorAll('.move').forEach(td=>{
+  td.addEventListener('click',()=>jumpTo(parseInt(td.dataset.index)+1));
+});
+function highlightMoves(){document.querySelectorAll('.move').forEach((m,i)=>m.classList.toggle('active',i===idx-1));}
+function clearCellHighlights(){for(const sq in cells)cells[sq].classList.remove('highlight-from','highlight-to');}
+function highlightCells(from,to){clearCellHighlights();if(cells[from])cells[from].classList.add('highlight-from');if(cells[to])cells[to].classList.add('highlight-to');}
+
+function resetBoard(){board=JSON.parse(JSON.stringify(start));draw();idx=0;side='w';enPassantSquare=null;highlightMoves();clearCellHighlights();}
+function nextMove(){if(idx<moves.length){applySAN(moves[idx],side);idx++;side=side==='w'?'b':'w';highlightMoves();}}
+function prevMove(){if(idx>0){jumpTo(idx-1);}}
+function jumpTo(n){resetBoard();for(let i=0;i<n;i++)nextMove();}
+
+/* === TROVA CASELLA ORIGINE (con linea libera) === */
+function findSource(piece, to, capture, side) {
+  const f=['a','b','c','d','e','f','g','h'];const tFile=to[0],tRank=+to[1];const tx=f.indexOf(tFile),ty=tRank;
+  const list=[];
+  const isClear=(fx,fy,tx,ty,dx,dy)=>{let x=fx+dx,y=fy+dy;while(x!==tx||y!==ty){if(board[f[x]+y])return false;x+=dx;y+=dy;}return true;};
+  for(const s in board){
+    const p=board[s];if(!p)continue;const c=p[0],type=p[1];if(c!==side||type!==piece)continue;
+    const fx=f.indexOf(s[0]),fy=+s[1],dx=tx-fx,dy=ty-fy;
+    if(piece==='P'){
+      if(side==='w'){if(!capture&&dx===0&&dy===1&&!board[to])list.push(s);
+      if(!capture&&dx===0&&dy===2&&fy===2&&!board[to]&&!board[s[0]+3])list.push(s);
+      if(capture&&Math.abs(dx)===1&&dy===1)list.push(s);}
+      else{if(!capture&&dx===0&&dy===-1&&!board[to])list.push(s);
+      if(!capture&&dx===0&&dy===-2&&fy===7&&!board[to]&&!board[s[0]+6])list.push(s);
+      if(capture&&Math.abs(dx)===1&&dy===-1)list.push(s);}
+    }
+    if(piece==='N'&&[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].some(([a,b])=>a===dx&&b===dy))list.push(s);
+    if(piece==='B'&&Math.abs(dx)===Math.abs(dy)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))list.push(s);
+    if(piece==='R'&&(dx===0||dy===0)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))list.push(s);
+    if(piece==='Q'&&((Math.abs(dx)===Math.abs(dy)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))||
+      ((dx===0||dy===0)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))))list.push(s);
+    if(piece==='K'&&Math.abs(dx)<=1&&Math.abs(dy)<=1)list.push(s);
+  }
+  return list[0];
+}
+
+/* === LOGICA MOSSA COMPLETA === */
+function applySAN(move, side){
+  const pawnDir=side==='w'?1:-1;let from=null,to=null;
+  // Arrocco
+  if(move==='O-O'||move==='0-0'){if(side==='w'){from='e1';to='g1';board.g1='wK';delete board.e1;board.f1='wR';delete board.h1;}
+  else{from='e8';to='g8';board.g8='bK';delete board.e8;board.f8='bR';delete board.h8;}draw();highlightCells(from,to);return;}
+  if(move==='O-O-O'||move==='0-0-0'){if(side==='w'){from='e1';to='c1';board.c1='wK';delete board.e1;board.d1='wR';delete board.a1;}
+  else{from='e8';to='c8';board.c8='bK';delete board.e8;board.d8='bR';delete board.a8;}draw();highlightCells(from,to);return;}
+
+  // Promozione
+  let promotion=null;
+  if(move.includes('=')){promotion=move.split('=')[1][0];move=move.split('=')[0];}
+
+  const piece=move.match(/^[KQRBN]/)?move[0]:'P';
+  const capture=move.includes('x');
+  to=move.slice(-2);
+  const fromSq=findSource(piece,to,capture,side);if(!fromSq)return;
+  from=fromSq;
+
+  if(piece==='P'&&to===enPassantSquare&&capture){const dir=side==='w'?-1:1;const target=to[0]+(parseInt(to[1])+dir);delete board[target];}
+  enPassantSquare=null;
+
+  if(piece==='P'){const fy=parseInt(from[1]);const ty=parseInt(to[1]);if(Math.abs(ty-fy)===2){const mid=to[0]+(fy+pawnDir);enPassantSquare=mid;}}
+  if(capture&&board[to])delete board[to];
+
+  // Spostamento e promozione
+  board[to]=promotion?side+promotion:side+piece;
+  delete board[from];
+  draw();highlightCells(from,to);
+}
+
+/* === CONTROLLI === */
+document.getElementById('nextMove').onclick=nextMove;
+document.getElementById('prevMove').onclick=prevMove;
+document.getElementById('firstMove').onclick=()=>jumpTo(0);
+document.getElementById('lastMove').onclick=()=>jumpTo(moves.length);
+
+/* === NAVIGAZIONE CON TASTIERA === */
+document.addEventListener('keydown', function(e) {
+  switch (e.key) {
+    case 'ArrowRight': // ➡️ avanti
+      e.preventDefault();
+      nextMove();
+      break;
+    case 'ArrowLeft': // ⬅️ indietro
+      e.preventDefault();
+      prevMove();
+      break;
+    case 'Home': // ⏮ inizio
+      e.preventDefault();
+      jumpTo(0);
+      break;
+    case 'End': // ⏭ fine
+      e.preventDefault();
+      jumpTo(moves.length);
+      break;
+  }
+});
+
+/* === NAVIGAZIONE TRA LINEE CON TAB / SHIFT+TAB === */
+const nextUrl = "{% if next_line %}{% url 'line_detail' opening.id next_line.numero %}{% else %}null{% endif %}";
+const prevUrl = "{% if prev_line %}{% url 'line_detail' opening.id prev_line.numero %}{% else %}null{% endif %}";
+
+document.addEventListener("keydown", function (event) {
+  if (event.key !== "Tab") return;
+  event.preventDefault();
+
+  if (!event.shiftKey && nextUrl !== "null") {
+    window.location.href = nextUrl;
+  }
+  if (event.shiftKey && prevUrl !== "null") {
+    window.location.href = prevUrl;
+  }
+});
+
+
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ opening.nome }} — {{ opening.mosse_iniziali }}</title>
+</head>
+<body>
+  <h2>{{ opening.nome }} — {{ opening.mosse_iniziali }}</h2>
+
+  {% for line in lines %}
+    <h4>Linea {{ line.numero }}: {{ line.titolo }}</h4>
+    <p>{{ line.pgn }}</p>
+    <a href="{% url 'line_detail' opening.id line.numero %}">Apri linea</a>
+    <hr>
+  {% empty %}
+    <p>Nessuna linea disponibile per questa apertura.</p>
+  {% endfor %}
+</body>
+</html>

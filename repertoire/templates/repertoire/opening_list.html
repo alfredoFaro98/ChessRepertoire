@@ -1,0 +1,14 @@
+<h2>📘 Scegli un’apertura</h2>
+<ul>
+  {% for opening in openings %}
+    <li>
+      <a href="{% url 'opening_detail' opening.id %}">{{ opening.nome }} — {{ opening.moves }}</a>
+    </li>
+  {% endfor %}
+</ul>
+
+<div>
+    Cose da implementare<br>
+    1 Se ci sono linee uguali
+    2 Flag per le linee già esplorare da mettere manualmente per l'utente
+</div>
