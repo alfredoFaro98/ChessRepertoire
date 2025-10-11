@@ -1,19 +1,82 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <title>{{ opening.nome }} — {{ opening.mosse_iniziali }}</title>
-</head>
-<body>
-  <h2>{{ opening.nome }} — {{ opening.mosse_iniziali }}</h2>
+{% extends "repertoire/base.html" %}
+{% block content %}
+<style>
+.tree, .tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 20px;
+}
 
-  {% for line in lines %}
-    <h4>Linea {{ line.numero }}: {{ line.titolo }}</h4>
-    <p>{{ line.pgn }}</p>
-    <a href="{% url 'line_detail' opening.id line.numero %}">Apri linea</a>
-    <hr>
+.line-node {
+  margin: 4px 0;
+  position: relative;
+}
+
+.toggle {
+  cursor: pointer;
+  user-select: none;
+  margin-right: 4px;
+  color: #555;
+}
+
+.toggle.empty {
+  visibility: hidden;
+}
+
+.nested {
+  display: none;
+  margin-left: 20px;
+}
+
+.nested.show {
+  display: block;
+}
+
+.toggle.collapsed::after {
+  content: "";
+}
+
+.toggle.expanded::after {
+  content: "";
+}
+
+.tree a {
+  text-decoration: none;
+  color: #2c3e50;
+}
+
+.tree a:hover {
+  color: #27ae60;
+}
+</style>
+
+<h2>{{ opening.nome }}</h2>
+<p>{{ opening.descrizione }}</p>
+
+<h3>📂 Linee e Varianti</h3>
+
+<ul class="tree">
+  {% for line in main_lines %}
+    {% include "repertoire/_line_node.html" with line=line %}
   {% empty %}
-    <p>Nessuna linea disponibile per questa apertura.</p>
+    <p>Nessuna linea registrata per questa apertura.</p>
   {% endfor %}
-</body>
-</html>
+</ul>
+
+{% endblock %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const toggles = document.querySelectorAll(".toggle");
+
+  toggles.forEach(t => {
+    t.addEventListener("click", () => {
+      const nested = t.parentElement.querySelector(".nested");
+      if (!nested) return;
+      nested.classList.toggle("show");
+      t.textContent = nested.classList.contains("show") ? "▼" : "▶";
+    });
+  });
+});
+</script>
+

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Chess Repertoire{% endblock %}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
+    a { color: #2c3e50; text-decoration: none; }
+    a:hover { color: #27ae60; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="/">♟️ Chess Repertoire</a></h1>
+    <hr>
+  </header>
+
+  {% block content %}
+  {% endblock %}
+</body>
+</html>

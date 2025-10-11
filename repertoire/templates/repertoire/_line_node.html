@@ -1,0 +1,19 @@
+<li class="line-node">
+  {% if line.varianti.all %}
+    <span class="toggle collapsed">▶</span>
+  {% else %}
+    <span class="toggle empty"></span>
+  {% endif %}
+
+  <a href="{% url 'line_detail' opening.id line.id %}">
+    {{ line.mosse_chiave }}
+  </a>
+
+  {% if line.varianti.all %}
+    <ul class="nested">
+      {% for sub in line.varianti.all %}
+        {% include "repertoire/_line_node.html" with line=sub %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+</li>

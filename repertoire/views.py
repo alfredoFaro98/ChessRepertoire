@@ -6,14 +6,18 @@ def opening_list(request):
     return render(request, 'repertoire/opening_list.html', {'openings': openings})
 
 
+from django.shortcuts import render, get_object_or_404
+from .models import OpeningRoot, OpeningLine
+
 def opening_detail(request, opening_id):
     opening = get_object_or_404(OpeningRoot, id=opening_id)
-    lines = opening.linee.order_by('numero')  # tutte le linee ordinate
+    main_lines = opening.linee.filter(parent__isnull=True).prefetch_related("varianti")
 
-    return render(request, 'repertoire/opening_detail.html', {
-        'opening': opening,
-        'lines': lines,
+    return render(request, "repertoire/opening_detail.html", {
+        "opening": opening,
+        "main_lines": main_lines,
     })
+
 
 
 from django.shortcuts import render, get_object_or_404

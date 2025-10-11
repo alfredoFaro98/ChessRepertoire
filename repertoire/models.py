@@ -15,12 +15,18 @@ class OpeningRoot(models.Model):
         return self.nome
 
 
+# models.py
+
 class OpeningLine(models.Model):
     root = models.ForeignKey(OpeningRoot, on_delete=models.CASCADE, related_name='linee')
-    numero = models.PositiveIntegerField()  # Linea 1, 2, 3, ecc.
+    numero = models.PositiveIntegerField()
     titolo = models.CharField(max_length=200, blank=True, null=True)
-    pgn = models.TextField()  # sequenza PGN o solo le mosse principali
+    pgn = models.TextField()
     note = models.TextField(blank=True, null=True)
+    flipped = models.BooleanField(default=False)
+
+    # 👇 nuovo campo opzionale
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='varianti')
 
     class Meta:
         unique_together = ('root', 'numero')
@@ -28,3 +34,9 @@ class OpeningLine(models.Model):
 
     def __str__(self):
         return f"{self.root.nome} - Linea {self.numero}"
+
+    def mosse_chiave(self):
+        """Restituisce la sequenza sintetica di mosse (tipo '1.e4 c6 2.d4 d5')"""
+        return " ".join(self.pgn.split()[:6])
+
+

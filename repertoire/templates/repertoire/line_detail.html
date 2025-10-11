@@ -180,27 +180,29 @@
     </div>
 
     <div class="controls">
-      <button id="firstMove">⏮</button>
-      <button id="prevMove">⬅</button>
-      <button id="nextMove">➡</button>
-      <button id="lastMove">⏭</button>
-    </div>
+  <button id="firstMove">⏮</button>
+  <button id="prevMove">⬅</button>
+  <button id="nextMove">➡</button>
+  <button id="lastMove">⏭</button>
+  <button id="flipBoard" title="Ruota la scacchiera">🔄</button>
+</div>
+
   </div>
 </div>
 
 <script>
 const boardEl = document.getElementById('board');
 const files = ['a','b','c','d','e','f','g','h'];
-const ranks = [8,7,6,5,4,3,2,1];
+let ranks = [8,7,6,5,4,3,2,1];
 const cells = {};
-for (let r=0;r<8;r++){
-  for (let f=0;f<8;f++){
-    const id = files[f]+ranks[r];
+for (let r=0; r<8; r++) {
+  for (let f=0; f<8; f++) {
+    const id = files[f] + ranks[r];
     const d = document.createElement('div');
-    d.className = 'cell ' + ((r+f)%2===0?'light':'dark');
+    d.className = 'cell ' + ((r+f)%2===0 ? 'light' : 'dark');
     d.id = id;
     boardEl.appendChild(d);
-    cells[id]=d;
+    cells[id] = d;
   }
 }
 
@@ -224,28 +226,39 @@ const pieceImgs = {
 };
 
 const start = {
-  a8:'bR',b8:'bN',c8:'bB',d8:'bQ',e8:'bK',f8:'bB',g8:'bN',h8:'bR',
-  a7:'bP',b7:'bP',c7:'bP',d7:'bP',e7:'bP',f7:'bP',g7:'bP',h7:'bP',
-  a2:'wP',b2:'wP',c2:'wP',d2:'wP',e2:'wP',f2:'wP',g2:'wP',h2:'wP',
-  a1:'wR',b1:'wN',c1:'wB',d1:'wQ',e1:'wK',f1:'wB',g1:'wN',h1:'wR'
+  a8:'bR', b8:'bN', c8:'bB', d8:'bQ', e8:'bK', f8:'bB', g8:'bN', h8:'bR',
+  a7:'bP', b7:'bP', c7:'bP', d7:'bP', e7:'bP', f7:'bP', g7:'bP', h7:'bP',
+  a2:'wP', b2:'wP', c2:'wP', d2:'wP', e2:'wP', f2:'wP', g2:'wP', h2:'wP',
+  a1:'wR', b1:'wN', c1:'wB', d1:'wQ', e1:'wK', f1:'wB', g1:'wN', h1:'wR'
 };
 
 let board = JSON.parse(JSON.stringify(start));
 let enPassantSquare = null;
 
+// ✅ Valore dal database (default=False) e controllo locale
+var flipped = {{ line.flipped|default_if_none:False|yesno:"true,false"|lower }};
+const flipKey = `flip:line:{{ line.id }}`;
+const savedFlip = localStorage.getItem(flipKey);
+if (savedFlip !== null) flipped = (savedFlip === '1');
+
 function draw() {
+  ranks = flipped ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+
   for (const sq in cells) {
     const piece = board[sq];
-    if (!piece) cells[sq].innerHTML = "";
-    else {
-      const color = piece[0];
-      const type = piece[1];
-      const img = pieceImgs[color][type];
-      cells[sq].innerHTML = `<img src="${img}" style="width:90%;height:90%;">`;
-    }
+    cells[sq].innerHTML = piece
+      ? `<img src="${pieceImgs[piece[0]][piece[1]]}" style="width:90%;height:90%;">`
+      : "";
   }
+
+  boardEl.style.transform = flipped ? "rotate(180deg)" : "rotate(0deg)";
+  boardEl.querySelectorAll("img").forEach(img =>
+    img.style.transform = flipped ? "rotate(180deg)" : "rotate(0deg)"
+  );
 }
 draw();
+
+
 
 function cleanPGN(pgn){
   return pgn.replace(/{[^}]*}/g,'')
@@ -381,6 +394,23 @@ document.addEventListener("keydown", function (event) {
     window.location.href = prevUrl;
   }
 });
+
+document.getElementById("flipBoard").onclick = () => {
+  flipped = !flipped;
+  localStorage.setItem(flipKey, flipped ? '1' : '0');
+  draw();
+};
+
+// tasto F per ruotare
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'f') {
+    flipped = !flipped;
+    localStorage.setItem(flipKey, flipped ? '1' : '0');
+    draw();
+  }
+});
+
+
 
 
 
