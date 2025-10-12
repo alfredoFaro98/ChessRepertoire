@@ -498,30 +498,73 @@ function prevMove(){if(idx>0){jumpTo(idx-1);}}
 function jumpTo(n){resetBoard();for(let i=0;i<n;i++)nextMove();}
 
 /* === TROVA CASELLA ORIGINE (con linea libera) === */
-function findSource(piece, to, capture, side) {
-  const f=['a','b','c','d','e','f','g','h'];const tFile=to[0],tRank=+to[1];const tx=f.indexOf(tFile),ty=tRank;
-  const list=[];
-  const isClear=(fx,fy,tx,ty,dx,dy)=>{let x=fx+dx,y=fy+dy;while(x!==tx||y!==ty){if(board[f[x]+y])return false;x+=dx;y+=dy;}return true;};
-  for(const s in board){
-    const p=board[s];if(!p)continue;const c=p[0],type=p[1];if(c!==side||type!==piece)continue;
-    const fx=f.indexOf(s[0]),fy=+s[1],dx=tx-fx,dy=ty-fy;
-    if(piece==='P'){
-      if(side==='w'){if(!capture&&dx===0&&dy===1&&!board[to])list.push(s);
-      if(!capture&&dx===0&&dy===2&&fy===2&&!board[to]&&!board[s[0]+3])list.push(s);
-      if(capture&&Math.abs(dx)===1&&dy===1)list.push(s);}
-      else{if(!capture&&dx===0&&dy===-1&&!board[to])list.push(s);
-      if(!capture&&dx===0&&dy===-2&&fy===7&&!board[to]&&!board[s[0]+6])list.push(s);
-      if(capture&&Math.abs(dx)===1&&dy===-1)list.push(s);}
-    }
-    if(piece==='N'&&[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].some(([a,b])=>a===dx&&b===dy))list.push(s);
-    if(piece==='B'&&Math.abs(dx)===Math.abs(dy)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))list.push(s);
-    if(piece==='R'&&(dx===0||dy===0)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))list.push(s);
-    if(piece==='Q'&&((Math.abs(dx)===Math.abs(dy)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))||
-      ((dx===0||dy===0)&&isClear(fx,fy,tx,ty,Math.sign(dx),Math.sign(dy)))))list.push(s);
-    if(piece==='K'&&Math.abs(dx)<=1&&Math.abs(dy)<=1)list.push(s);
+function findSource(piece, to, capture, side, move) {
+  const f = ['a','b','c','d','e','f','g','h'];
+  const tFile = to[0], tRank = +to[1];
+  const tx = f.indexOf(tFile), ty = tRank;
+  let list = [];
+
+  // 1️⃣ estrai eventuale disambiguazione (es. Nce7 → fileHint = 'c')
+  let fileHint = null, rankHint = null;
+  const match = move.match(/^[KQRBN]?([a-h1-8]?)(x?[a-h][1-8])/);
+  if (match) {
+    const hint = match[1];
+    if (/[a-h]/.test(hint)) fileHint = hint;
+    if (/[1-8]/.test(hint)) rankHint = hint;
   }
+
+  // funzione di supporto per vedere se il cammino è libero
+  const isClear = (fx, fy, tx, ty, dx, dy) => {
+    let x = fx + dx, y = fy + dy;
+    while (x !== tx || y !== ty) {
+      if (board[f[x] + y]) return false;
+      x += dx; y += dy;
+    }
+    return true;
+  };
+
+  // 2️⃣ cerca tutti i pezzi compatibili
+  for (const s in board) {
+    const p = board[s];
+    if (!p) continue;
+    const c = p[0], type = p[1];
+    if (c !== side || type !== piece) continue;
+
+    const fx = f.indexOf(s[0]), fy = +s[1], dx = tx - fx, dy = ty - fy;
+
+    if (piece === 'P') {
+      if (side === 'w') {
+        if (!capture && dx === 0 && dy === 1 && !board[to]) list.push(s);
+        if (!capture && dx === 0 && dy === 2 && fy === 2 && !board[to] && !board[s[0] + 3]) list.push(s);
+        if (capture && Math.abs(dx) === 1 && dy === 1) list.push(s);
+      } else {
+        if (!capture && dx === 0 && dy === -1 && !board[to]) list.push(s);
+        if (!capture && dx === 0 && dy === -2 && fy === 7 && !board[to] && !board[s[0] + 6]) list.push(s);
+        if (capture && Math.abs(dx) === 1 && dy === -1) list.push(s);
+      }
+    }
+
+    if (piece === 'N' && [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].some(([a,b]) => a===dx && b===dy))
+      list.push(s);
+    if (piece === 'B' && Math.abs(dx) === Math.abs(dy) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy)))
+      list.push(s);
+    if (piece === 'R' && (dx===0 || dy===0) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy)))
+      list.push(s);
+    if (piece === 'Q' && (
+        (Math.abs(dx) === Math.abs(dy) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy))) ||
+        ((dx===0 || dy===0) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy)))
+      )) list.push(s);
+    if (piece === 'K' && Math.abs(dx)<=1 && Math.abs(dy)<=1)
+      list.push(s);
+  }
+
+  // 3️⃣ Se la mossa è ambigua, usa il file o rank per decidere
+  if (fileHint) list = list.filter(sq => sq[0] === fileHint);
+  if (rankHint) list = list.filter(sq => sq[1] === rankHint);
+
   return list[0];
 }
+
 
 /* === LOGICA MOSSA COMPLETA === */
 function applySAN(move, side){
@@ -539,7 +582,7 @@ function applySAN(move, side){
   const piece=move.match(/^[KQRBN]/)?move[0]:'P';
   const capture=move.includes('x');
   to=move.slice(-2);
-  const fromSq=findSource(piece,to,capture,side);if(!fromSq)return;
+  const fromSq=findSource(piece, to, capture, side, move);if(!fromSq)return;
   from=fromSq;
 
   if(piece==='P'&&to===enPassantSquare&&capture){const dir=side==='w'?-1:1;const target=to[0]+(parseInt(to[1])+dir);delete board[target];}
