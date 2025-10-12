@@ -119,6 +119,10 @@ def line_detail(request, root_id, line_num):
     }
     return render(request, "repertoire/line_detail.html", context)
 
+from django.shortcuts import render
+
+def analisi_domande(request):
+    return render(request, 'repertoire/analisi_domande.html')
 
 
 
