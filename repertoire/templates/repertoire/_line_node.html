@@ -6,8 +6,9 @@
       <span class="toggle empty"></span>
     {% endif %}
 
-    <a href="{% url 'line_detail' opening.id line.id %}">
-      {{ line.mosse_chiave }}
+    <!-- link alla linea -->
+    <a href="{% url 'line_detail' line.root.id line.numero %}">
+      <span class="mosse">{{ line.pgn }}</span>
     </a>
 
     {% if children.count %}

@@ -9,8 +9,19 @@ def opening_list(request):
 from django.shortcuts import render, get_object_or_404
 from .models import OpeningRoot, OpeningLine
 
+from django.shortcuts import render, get_object_or_404
+from .models import OpeningRoot, OpeningLine
+
 def opening_detail(request, opening_id):
     opening = get_object_or_404(OpeningRoot, id=opening_id)
+
+    # Tutte le linee di questa apertura (root)
+    all_lines = list(OpeningLine.objects.filter(root=opening).order_by("numero", "id"))
+
+    # Mappa {line.id: posizione_reale}
+    positions = {line.id: idx + 1 for idx, line in enumerate(all_lines)}
+
+    # Linee principali per costruire l’albero
     main_lines = (
         opening.linee
         .filter(parent__isnull=True)
@@ -25,34 +36,42 @@ def opening_detail(request, opening_id):
     return render(request, "repertoire/opening_detail.html", {
         "opening": opening,
         "main_lines": main_lines,
+        "positions": positions,  # 👈 passiamo la mappa
     })
+
 
 
 
 from django.shortcuts import render, get_object_or_404
 from .models import OpeningRoot, OpeningLine
 
-def line_detail(request, opening_id, line_num):
-    opening = get_object_or_404(OpeningRoot, id=opening_id)
-    line = get_object_or_404(OpeningLine, numero=line_num, root=opening)
+def line_detail(request, root_id, line_num):
+    root = get_object_or_404(OpeningRoot, id=root_id)
+    
+    # Otteniamo tutte le linee della root ordinate realmente per 'numero' e poi per 'id'
+    lines = list(OpeningLine.objects.filter(root=root).order_by('numero', 'id'))
+    
+    # Verifica che il numero richiesto esista come indice (1-based)
+    if not (1 <= line_num <= len(lines)):
+        return render(request, "404.html", status=404)
+    
+    # Recupera la linea in base alla posizione reale nella lista
+    line = lines[line_num - 1]
+    
+    prev_line = lines[line_num - 2] if line_num > 1 else None
+    next_line = lines[line_num] if line_num < len(lines) else None
 
-    # Ordina tutte le linee dell’apertura
-    lines = list(opening.linee.order_by('numero'))
+    context = {
+        "root": root,
+        "line": line,
+        "prev_line": prev_line,
+        "next_line": next_line,
+        "total_lines": len(lines),
+        "line_position": line_num,
+    }
+    return render(request, "repertoire/line_detail.html", context)
 
-    # Trova la posizione della linea attuale
-    current_index = lines.index(line)
 
-    # Precedente e successiva (se esistono)
-    prev_line = lines[current_index - 1] if current_index > 0 else None
-    next_line = lines[current_index + 1] if current_index < len(lines) - 1 else None
-
-    return render(request, 'repertoire/line_detail.html', {
-        'opening': opening,
-        'line': line,
-        'prev_line': prev_line,
-        'next_line': next_line,
-        'total_lines': len(lines),
-    })
 
 
 

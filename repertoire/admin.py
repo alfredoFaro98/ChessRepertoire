@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import OpeningRoot, OpeningLine
 from .utils import trova_parent
 
@@ -52,16 +53,24 @@ class OpeningRootAdmin(admin.ModelAdmin):
 @admin.register(OpeningLine)
 class OpeningLineAdmin(admin.ModelAdmin):
     form = OpeningLineForm
-    list_display = ("root", "numero", "titolo", "parent", "is_leaf", "mosse_chiave")
+    list_display = ("root", "numero", "titolo", "parent", "is_leaf", "pgn_display")
     list_filter = ("root", LeafFilter)
     search_fields = ("pgn", "titolo")
+
+    def pgn_display(self, obj):
+        """Mostra la PGN intera nella tabella (troncata graficamente ma visibile tutta con tooltip)."""
+        if not obj.pgn:
+            return ""
+        text = obj.pgn.replace("\n", " ").strip()
+        short = text if len(text) <= 120 else text[:120] + "…"
+        return format_html("<span title='{}'>{}</span>", text, short)
+    pgn_display.short_description = "Mosse (PGN)"
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "parent":
             qs = OpeningLine.objects.all().order_by("root", "numero")
             kwargs["queryset"] = qs
             formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
-            # ✅ imposta la label nel formfield (non nei kwargs)
             formfield.label_from_instance = lambda obj: obj.label_with_indent()
             return formfield
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

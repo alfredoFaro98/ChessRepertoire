@@ -4,7 +4,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>{{ opening.nome }} — Linea {{ line.numero }}</title>
+<title>{{ root.nome }} — Linea {{ line.numero }}</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -142,6 +142,19 @@
 .btn-nav:hover {
   background: #43a047;
 }
+.btn-nav {
+  text-decoration: none;
+  background: #4CAF50;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.btn-nav:hover {
+  background: #43a047;
+}
 
 </style>
 </head>
@@ -155,22 +168,26 @@
 
   <div class="sidebar">
     <div class="sidebar-header">
-  {{ opening.nome }} — Linea {{ line.numero }} di {{ total_lines }}
+  {{ root.nome }} — Linea {{ line_position }} di {{ total_lines }}
+</div>
+<div style="background:#f2f2f2; padding:8px 12px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+  <a href="{% url 'opening_detail' root.id %}" class="btn-nav">⬅ Torna all'apertura</a>
 </div>
 
 {% if prev_line or next_line %}
   <div style="display:flex; justify-content:space-between; align-items:center; background:#f2f2f2; padding:8px 12px; border-bottom:1px solid #ddd;">
     {% if prev_line %}
-      <a href="{% url 'line_detail' opening.id prev_line.id %}" class="btn-nav">⬅ Linea {{ prev_line.numero }}</a>
-    {% else %}
-      <span></span>
-    {% endif %}
+  <a href="{% url 'line_detail' prev_line.root.id prev_line.numero %}" class="btn-nav">⬅ Linea {{ prev_line.numero }}</a>
+{% else %}
+  <span></span>
+{% endif %}
 
-    {% if next_line %}
-      <a href="{% url 'line_detail' opening.id next_line.id %}" class="btn-nav">Linea {{ next_line.numero }} ➡</a>
-    {% else %}
-      <span></span>
-    {% endif %}
+{% if next_line %}
+  <a href="{% url 'line_detail' next_line.root.id next_line.numero %}" class="btn-nav">Linea {{ next_line.numero }} ➡</a>
+{% else %}
+  <span></span>
+{% endif %}
+
   </div>
 {% endif %}
 
@@ -380,8 +397,8 @@ document.addEventListener('keydown', function(e) {
 });
 
 /* === NAVIGAZIONE TRA LINEE CON TAB / SHIFT+TAB === */
-const nextUrl = "{% if next_line %}{% url 'line_detail' opening.id next_line.numero %}{% else %}null{% endif %}";
-const prevUrl = "{% if prev_line %}{% url 'line_detail' opening.id prev_line.numero %}{% else %}null{% endif %}";
+const nextUrl = "{% if next_line %}{% url 'line_detail' next_line.root.id next_line.numero %}{% else %}null{% endif %}";
+const prevUrl = "{% if prev_line %}{% url 'line_detail' prev_line.root.id prev_line.numero %}{% else %}null{% endif %}";
 
 document.addEventListener("keydown", function (event) {
   if (event.key !== "Tab") return;
