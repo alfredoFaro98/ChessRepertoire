@@ -45,8 +45,11 @@ class OpeningLineForm(forms.ModelForm):
 # === ADMIN PER OPENINGROOT ===
 @admin.register(OpeningRoot)
 class OpeningRootAdmin(admin.ModelAdmin):
-    list_display = ("nome", "moves", "descrizione")
+    list_display = ("nome", "moves", "difesa", "descrizione")
+    list_filter = ("difesa",)
     search_fields = ("nome",)
+
+    
 
 
 # === ADMIN PER OPENINGLINE ===

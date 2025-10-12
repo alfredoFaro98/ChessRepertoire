@@ -10,12 +10,12 @@
   margin-bottom: 20px;
   text-align: center;
 }
-.search-bar input {
-  width: 50%;
+.search-bar input, .search-bar select {
   padding: 10px 15px;
   border: 2px solid #4CAF50;
   border-radius: 6px;
   font-size: 16px;
+  margin: 0 5px;
 }
 .grid {
   display: grid;
@@ -29,10 +29,9 @@
   overflow: hidden;
   transition: transform 0.2s;
   text-align: center;
+  padding-bottom: 10px;
 }
-.card:hover {
-  transform: scale(1.02);
-}
+.card:hover { transform: scale(1.02); }
 .card h3 {
   margin: 10px 0 5px 0;
   color: #2c3e50;
@@ -44,7 +43,11 @@
 }
 .board-container {
   background: #dfe3e6;
-  padding: 5px;
+  padding: 6px;
+}
+.icon {
+  font-size: 18px;
+  margin-left: 5px;
 }
 </style>
 
@@ -52,8 +55,21 @@
   <h2>📘 Scegli un’apertura</h2>
 
   <div class="search-bar">
-    <form method="get">
-      <input type="text" name="q" placeholder="Cerca apertura..." value="{{ query }}">
+    <form method="get" id="searchForm">
+      <input type="text" name="q" placeholder="Cerca apertura..."
+             list="aperture_suggestions"
+             value="{{ query }}">
+      <datalist id="aperture_suggestions">
+        {% for item in all_openings %}
+          <option value="{{ item.nome }}">
+        {% endfor %}
+      </datalist>
+
+      <select name="filtro" id="filtroSelect">
+        <option value="tutti" {% if filtro == "tutti" %}selected{% endif %}>Tutte</option>
+        <option value="attacchi" {% if filtro == "attacchi" %}selected{% endif %}>Solo Attacchi</option>
+        <option value="difese" {% if filtro == "difese" %}selected{% endif %}>Solo Difese</option>
+      </select>
     </form>
   </div>
 
@@ -63,7 +79,14 @@
         <div class="board-container">
           {{ item.svg|safe }}
         </div>
-        <h3>{{ item.obj.nome }}</h3>
+        <h3>
+          {{ item.obj.nome }}
+          {% if item.obj.difesa %}
+            <span class="icon" title="Difesa">♟️</span>
+          {% else %}
+            <span class="icon" title="Attacco">⚔️</span>
+          {% endif %}
+        </h3>
         <p>{{ item.obj.moves }}</p>
       </a>
     {% empty %}
@@ -71,4 +94,21 @@
     {% endfor %}
   </div>
 </div>
+
+<script>
+// 🔄 Invio automatico quando cambia il filtro
+document.getElementById('filtroSelect').addEventListener('change', function() {
+  document.getElementById('searchForm').submit();
+});
+
+// 🔎 Invio automatico anche quando si scrive nel campo ricerca
+const searchInput = document.querySelector('input[name="q"]');
+searchInput.addEventListener('input', function() {
+  clearTimeout(this.timer);
+  this.timer = setTimeout(() => {
+    document.getElementById('searchForm').submit();
+  }, 400); // attende mezzo secondo dopo che l'utente smette di scrivere
+});
+</script>
+
 {% endblock %}

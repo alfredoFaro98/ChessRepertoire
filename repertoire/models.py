@@ -4,6 +4,7 @@ class OpeningRoot(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     moves = models.CharField(max_length=50, blank=True, null=True)
     descrizione = models.TextField(blank=True, null=True)
+    difesa = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['nome']

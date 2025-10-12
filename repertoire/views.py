@@ -5,33 +5,63 @@ from django.shortcuts import render
 from .models import OpeningRoot
 import chess
 import chess.svg
+import re
+
+from django.shortcuts import render
+from .models import OpeningRoot
+import chess
+import chess.svg
+import re
 
 def opening_list(request):
     query = request.GET.get("q", "")
+    filtro = request.GET.get("filtro", "tutti")
+
     openings = OpeningRoot.objects.all()
+
+    if filtro == "attacchi":
+        openings = openings.filter(difesa=False)
+    elif filtro == "difese":
+        openings = openings.filter(difesa=True)
+
     if query:
         openings = openings.filter(nome__icontains=query)
 
     openings_data = []
+    import chess, chess.svg, re
     for opening in openings:
         board = chess.Board()
         try:
             if opening.moves:
-                for move in opening.moves.split():
-                    if "." not in move:  # ignora numeri tipo "1." "2."
+                clean_moves = re.sub(r"\d+\.", "", opening.moves)
+                for move in clean_moves.split():
+                    if move not in ["1-0", "0-1", "1/2-1/2", "*"]:
                         board.push_san(move)
         except Exception:
             pass
 
         openings_data.append({
             "obj": opening,
-            "svg": chess.svg.board(board, size=200)
+            "svg": chess.svg.board(
+                board,
+                size=220,
+                flipped=opening.difesa,
+                colors={"square light": "#eeeed2", "square dark": "#769656"},
+            ),
         })
 
     return render(request, "repertoire/opening_list.html", {
         "openings": openings_data,
+        "all_openings": OpeningRoot.objects.all(),  # 👈 per autocompletamento
         "query": query,
+        "filtro": filtro,
     })
+
+
+
+
+
+
 
 
 from django.shortcuts import render, get_object_or_404
