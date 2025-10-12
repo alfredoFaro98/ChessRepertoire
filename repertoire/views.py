@@ -11,7 +11,16 @@ from .models import OpeningRoot, OpeningLine
 
 def opening_detail(request, opening_id):
     opening = get_object_or_404(OpeningRoot, id=opening_id)
-    main_lines = opening.linee.filter(parent__isnull=True).prefetch_related("varianti")
+    main_lines = (
+        opening.linee
+        .filter(parent__isnull=True)
+        .prefetch_related(
+            "varianti",
+            "varianti__varianti",
+            "varianti__varianti__varianti",
+            "varianti__varianti__varianti__varianti"
+        )
+    )
 
     return render(request, "repertoire/opening_detail.html", {
         "opening": opening,

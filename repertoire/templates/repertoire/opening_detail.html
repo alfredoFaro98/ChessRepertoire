@@ -17,6 +17,7 @@
   user-select: none;
   margin-right: 4px;
   color: #555;
+  font-weight: bold;
 }
 
 .toggle.empty {
@@ -30,14 +31,6 @@
 
 .nested.show {
   display: block;
-}
-
-.toggle.collapsed::after {
-  content: "";
-}
-
-.toggle.expanded::after {
-  content: "";
 }
 
 .tree a {
@@ -63,12 +56,9 @@
   {% endfor %}
 </ul>
 
-{% endblock %}
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const toggles = document.querySelectorAll(".toggle");
-
   toggles.forEach(t => {
     t.addEventListener("click", () => {
       const nested = t.parentElement.querySelector(".nested");
@@ -79,4 +69,4 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
-
+{% endblock %}
