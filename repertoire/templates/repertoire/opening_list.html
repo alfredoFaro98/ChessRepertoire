@@ -10,12 +10,33 @@
   margin-bottom: 20px;
   text-align: center;
 }
-.search-bar input, .search-bar select {
+.search-bar input {
   padding: 10px 15px;
   border: 2px solid #4CAF50;
   border-radius: 6px;
   font-size: 16px;
-  margin: 0 5px;
+  width: 50%;
+}
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #4CAF50;
+}
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #4CAF50;
+  border-bottom: 3px solid transparent;
+  transition: 0.2s;
+}
+.tab.active {
+  border-bottom: 3px solid #4CAF50;
+  color: #2c3e50;
+}
+.tab:hover {
+  background-color: #e9f5ec;
 }
 .grid {
   display: grid;
@@ -49,6 +70,11 @@
   font-size: 18px;
   margin-left: 5px;
 }
+.line-count {
+  color: #888;
+  font-size: 13px;
+  margin-top: -4px;
+}
 </style>
 
 <div class="page">
@@ -57,20 +83,20 @@
   <div class="search-bar">
     <form method="get" id="searchForm">
       <input type="text" name="q" placeholder="Cerca apertura..."
-             list="aperture_suggestions"
-             value="{{ query }}">
+             list="aperture_suggestions" value="{{ query }}">
       <datalist id="aperture_suggestions">
         {% for item in all_openings %}
           <option value="{{ item.nome }}">
         {% endfor %}
       </datalist>
-
-      <select name="filtro" id="filtroSelect">
-        <option value="tutti" {% if filtro == "tutti" %}selected{% endif %}>Tutte</option>
-        <option value="attacchi" {% if filtro == "attacchi" %}selected{% endif %}>Solo Attacchi</option>
-        <option value="difese" {% if filtro == "difese" %}selected{% endif %}>Solo Difese</option>
-      </select>
+      <input type="hidden" name="filtro" id="hiddenFilter" value="{{ filtro }}">
     </form>
+  </div>
+
+  <div class="tabs">
+    <div class="tab {% if filtro == 'tutti' %}active{% endif %}" data-filter="tutti">Tutte</div>
+    <div class="tab {% if filtro == 'attacchi' %}active{% endif %}" data-filter="attacchi">⚔️ Attacchi</div>
+    <div class="tab {% if filtro == 'difese' %}active{% endif %}" data-filter="difese">♟️ Difese</div>
   </div>
 
   <div class="grid">
@@ -88,6 +114,7 @@
           {% endif %}
         </h3>
         <p>{{ item.obj.moves }}</p>
+        <div class="line-count">📑 {{ item.num_linee }} linee totali</div>
       </a>
     {% empty %}
       <p>Nessuna apertura trovata.</p>
@@ -96,18 +123,22 @@
 </div>
 
 <script>
-// 🔄 Invio automatico quando cambia il filtro
-document.getElementById('filtroSelect').addEventListener('change', function() {
-  document.getElementById('searchForm').submit();
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    // aggiorna filtro nascosto
+    document.getElementById('hiddenFilter').value = tab.dataset.filter;
+    // invia il form
+    document.getElementById('searchForm').submit();
+  });
 });
 
-// 🔎 Invio automatico anche quando si scrive nel campo ricerca
+// autocompletamento: aggiorna risultati al volo
 const searchInput = document.querySelector('input[name="q"]');
 searchInput.addEventListener('input', function() {
   clearTimeout(this.timer);
   this.timer = setTimeout(() => {
     document.getElementById('searchForm').submit();
-  }, 400); // attende mezzo secondo dopo che l'utente smette di scrivere
+  }, 400);
 });
 </script>
 

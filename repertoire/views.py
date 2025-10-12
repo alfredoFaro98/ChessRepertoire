@@ -7,18 +7,12 @@ import chess
 import chess.svg
 import re
 
-from django.shortcuts import render
-from .models import OpeningRoot
-import chess
-import chess.svg
-import re
-
 def opening_list(request):
     query = request.GET.get("q", "")
     filtro = request.GET.get("filtro", "tutti")
 
+    # 🔍 Filtro base
     openings = OpeningRoot.objects.all()
-
     if filtro == "attacchi":
         openings = openings.filter(difesa=False)
     elif filtro == "difese":
@@ -28,44 +22,40 @@ def opening_list(request):
         openings = openings.filter(nome__icontains=query)
 
     openings_data = []
-    import chess, chess.svg, re
+
     for opening in openings:
         board = chess.Board()
         try:
             if opening.moves:
                 clean_moves = re.sub(r"\d+\.", "", opening.moves)
-                for move in clean_moves.split():
+                tokens = clean_moves.split()
+                for move in tokens:
                     if move not in ["1-0", "0-1", "1/2-1/2", "*"]:
                         board.push_san(move)
         except Exception:
             pass
+
+        # 🧮 Conta le linee associate a questa apertura
+        num_linee = opening.linee.count()
 
         openings_data.append({
             "obj": opening,
             "svg": chess.svg.board(
                 board,
                 size=220,
-                flipped=opening.difesa,
+                flipped=getattr(opening, "difesa", False),
                 colors={"square light": "#eeeed2", "square dark": "#769656"},
             ),
+            "num_linee": num_linee,  # 👈 aggiunto
         })
 
     return render(request, "repertoire/opening_list.html", {
         "openings": openings_data,
-        "all_openings": OpeningRoot.objects.all(),  # 👈 per autocompletamento
+        "all_openings": OpeningRoot.objects.all(),
         "query": query,
         "filtro": filtro,
     })
 
-
-
-
-
-
-
-
-from django.shortcuts import render, get_object_or_404
-from .models import OpeningRoot, OpeningLine
 
 from django.shortcuts import render, get_object_or_404
 from .models import OpeningRoot, OpeningLine
