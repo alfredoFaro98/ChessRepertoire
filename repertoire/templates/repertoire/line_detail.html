@@ -191,6 +191,27 @@
   font-size: 14px;
 }
 
+/* Evidenziazione cella con click destro */
+.cell.highlighted {
+  box-shadow: inset 0 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+/* Canvas sopra la scacchiera per le frecce */
+#arrowLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+#arrowLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 5; /* 🔥 Serve per stare sopra la scacchiera */
+}
+
 </style>
 </head>
 <body>
@@ -199,6 +220,7 @@
 
   <div class="board-container">
   <div class="board-wrapper">
+    <canvas id="arrowLayer" width="480" height="480"></canvas>
     <div class="board" id="board"></div>
 
     <!-- Numeri (8→1 a sinistra) -->
@@ -274,6 +296,14 @@ for (let r=0; r<8; r++) {
     cells[id] = d;
   }
 }
+// === Evidenziazione cella con click destro ===
+for (const id in cells) {
+  cells[id].addEventListener("contextmenu", e => {
+    e.preventDefault();
+    cells[id].classList.toggle("highlighted");
+  });
+}
+
 
 const pieceImgs = {
   w: {
@@ -483,6 +513,142 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// === Disegno frecce su canvas (con toggle e cancellazione) ===
+const arrowCanvas = document.getElementById("arrowLayer");
+const ctx = arrowCanvas.getContext("2d");
+
+let arrowStart = null;   // casella di partenza
+let arrows = [];         // archivio frecce attive
+const size = 480 / 8;
+
+function squareCenter(squareId) {
+  const file = files.indexOf(squareId[0]);
+  const rank = parseInt(squareId[1]);
+  let x = file * size + size / 2;
+  let y = (8 - rank) * size + size / 2;
+  if (flipped) {
+    x = 480 - x;
+    y = 480 - y;
+  }
+  return [x, y];
+}
+
+function drawArrow(from, to, color = "rgba(255,0,0,0.85)") {
+  const existingIndex = arrows.findIndex(a => a.from === from && a.to === to && a.color === color);
+  if (existingIndex !== -1) {
+    arrows.splice(existingIndex, 1);
+    redrawArrows();
+    return;
+  }
+  arrows.push({ from, to, color });
+  redrawArrows();
+}
+
+function redrawArrows() {
+  ctx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+
+  arrows.forEach(({ from, to, color }) => {
+    const [x1, y1] = squareCenter(from);
+    const [x2, y2] = squareCenter(to);
+    const dx = x2 - x1, dy = y2 - y1;
+    const angle = Math.atan2(dy, dx);
+
+    const headLength = 25;
+    const lineWidth = 12;
+    const shorten = 20;
+    const endX = x2 - Math.cos(angle) * shorten;
+    const endY = y2 - Math.sin(angle) * shorten;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(
+      x2 - headLength * Math.cos(angle - Math.PI / 6),
+      y2 - headLength * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      x2 - headLength * Math.cos(angle + Math.PI / 6),
+      y2 - headLength * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function clearArrows() {
+  arrows = [];
+  ctx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+}
+
+function clearAllHighlights() {
+  clearArrows(); // cancella frecce
+
+  // 🔹 cancella evidenziazioni quadrati
+  for (const id in cells) {
+    cells[id].classList.remove("highlighted");
+  }
+}
+
+
+arrowCanvas.addEventListener("contextmenu", e => e.preventDefault());
+
+boardEl.addEventListener("mousedown", e => {
+  if (e.button !== 2) return;
+  const target = Object.values(cells).find(c => c.contains(e.target));
+  if (target) arrowStart = target.id;
+});
+
+boardEl.addEventListener("mouseup", e => {
+  if (e.button !== 2 || !arrowStart) return;
+  const target = Object.values(cells).find(c => c.contains(e.target));
+  if (target && target.id !== arrowStart) {
+    drawArrow(arrowStart, target.id);
+  }
+  arrowStart = null;
+});
+
+// 🔄 Ruota la scacchiera e cancella frecce + evidenziazioni
+document.getElementById("flipBoard").addEventListener("click", () => {
+  flipped = !flipped;
+  localStorage.setItem(flipKey, flipped ? "1" : "0");
+  clearAllHighlights(); // 🔥 cancella frecce e quadrati
+  draw();
+});
+
+
+// 🧹 tasto C cancella frecce + quadrati evidenziati
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "c") {
+    clearAllHighlights();
+  }
+});
+
+// 🧹 Click sinistro sulla scacchiera = cancella frecce + evidenziazioni
+boardEl.addEventListener("mousedown", e => {
+  // Solo click sinistro (button 0)
+  if (e.button === 0) {
+    // Se clicchi su una cella o su spazio vuoto, cancella tutto
+    const clickedCell = Object.values(cells).find(c => c.contains(e.target));
+    if (clickedCell || e.target === boardEl) {
+      clearAllHighlights();
+    }
+  }
+});
+
+
+
+
+
+
+
 /* === NAVIGAZIONE TRA LINEE CON TAB / SHIFT+TAB === */
 const nextUrl = "{% if next_line %}{% url 'line_detail' next_line.root.id next_line.numero %}{% else %}null{% endif %}";
 const prevUrl = "{% if prev_line %}{% url 'line_detail' prev_line.root.id prev_line.numero %}{% else %}null{% endif %}";
@@ -499,11 +665,6 @@ document.addEventListener("keydown", function (event) {
   }
 });
 
-document.getElementById("flipBoard").onclick = () => {
-  flipped = !flipped;
-  localStorage.setItem(flipKey, flipped ? '1' : '0');
-  draw();
-};
 
 // tasto F per ruotare
 document.addEventListener('keydown', (e) => {
