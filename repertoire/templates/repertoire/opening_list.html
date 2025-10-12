@@ -1,14 +1,74 @@
-<h2>📘 Scegli un’apertura</h2>
-<ul>
-  {% for opening in openings %}
-    <li>
-      <a href="{% url 'opening_detail' opening.id %}">{{ opening.nome }} — {{ opening.moves }}</a>
-    </li>
-  {% endfor %}
-</ul>
+{% extends "repertoire/base.html" %}
+{% block content %}
+<style>
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.search-bar {
+  margin-bottom: 20px;
+  text-align: center;
+}
+.search-bar input {
+  width: 50%;
+  padding: 10px 15px;
+  border: 2px solid #4CAF50;
+  border-radius: 6px;
+  font-size: 16px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.2s;
+  text-align: center;
+}
+.card:hover {
+  transform: scale(1.02);
+}
+.card h3 {
+  margin: 10px 0 5px 0;
+  color: #2c3e50;
+}
+.card p {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 14px;
+}
+.board-container {
+  background: #dfe3e6;
+  padding: 5px;
+}
+</style>
 
-<div>
-    Cose da implementare<br>
-    1 Se ci sono linee uguali
-    2 Flag per le linee già esplorare da mettere manualmente per l'utente
+<div class="page">
+  <h2>📘 Scegli un’apertura</h2>
+
+  <div class="search-bar">
+    <form method="get">
+      <input type="text" name="q" placeholder="Cerca apertura..." value="{{ query }}">
+    </form>
+  </div>
+
+  <div class="grid">
+    {% for item in openings %}
+      <a href="{% url 'opening_detail' item.obj.id %}" class="card">
+        <div class="board-container">
+          {{ item.svg|safe }}
+        </div>
+        <h3>{{ item.obj.nome }}</h3>
+        <p>{{ item.obj.moves }}</p>
+      </a>
+    {% empty %}
+      <p>Nessuna apertura trovata.</p>
+    {% endfor %}
+  </div>
 </div>
+{% endblock %}

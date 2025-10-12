@@ -1,9 +1,37 @@
 from django.shortcuts import render, get_object_or_404
 from .models import OpeningRoot, OpeningLine
 
+from django.shortcuts import render
+from .models import OpeningRoot
+import chess
+import chess.svg
+
 def opening_list(request):
+    query = request.GET.get("q", "")
     openings = OpeningRoot.objects.all()
-    return render(request, 'repertoire/opening_list.html', {'openings': openings})
+    if query:
+        openings = openings.filter(nome__icontains=query)
+
+    openings_data = []
+    for opening in openings:
+        board = chess.Board()
+        try:
+            if opening.moves:
+                for move in opening.moves.split():
+                    if "." not in move:  # ignora numeri tipo "1." "2."
+                        board.push_san(move)
+        except Exception:
+            pass
+
+        openings_data.append({
+            "obj": opening,
+            "svg": chess.svg.board(board, size=200)
+        })
+
+    return render(request, "repertoire/opening_list.html", {
+        "openings": openings_data,
+        "query": query,
+    })
 
 
 from django.shortcuts import render, get_object_or_404
