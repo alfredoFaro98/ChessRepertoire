@@ -54,3 +54,12 @@ class OpeningLine(models.Model):
 
     def is_leaf(self):
         return not self.varianti.exists()
+    
+    def depth(self):
+        d = 0
+        parent = self.parent
+        while parent:
+            d += 1
+            parent = parent.parent
+        return d
+

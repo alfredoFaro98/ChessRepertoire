@@ -68,9 +68,30 @@ class OpeningLineAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "parent":
-            qs = OpeningLine.objects.all().order_by("root", "numero")
-            kwargs["queryset"] = qs
+            # ✅ Limitiamo i parent alla stessa root (se stai modificando una linea esistente)
+            if request.resolver_match.kwargs.get("object_id"):
+                try:
+                    current_line = OpeningLine.objects.get(pk=request.resolver_match.kwargs["object_id"])
+                    kwargs["queryset"] = OpeningLine.objects.filter(root=current_line.root).exclude(pk=current_line.pk)
+                except OpeningLine.DoesNotExist:
+                    kwargs["queryset"] = OpeningLine.objects.none()
+            else:
+                # In caso di creazione nuova, mostriamo tutto (o nessuno finché non è scelta la root)
+                kwargs["queryset"] = OpeningLine.objects.none()
+
             formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
-            formfield.label_from_instance = lambda obj: obj.label_with_indent()
+
+            # ✅ Etichetta con indentazione e mosse complete
+            def full_label(obj):
+                indent = "— " * obj.depth() if hasattr(obj, "depth") else ""
+                moves = obj.pgn.strip() if obj.pgn else "(vuoto)"
+                if len(moves) > 200:
+                    moves = moves[:200] + "..."
+                return f"{indent}{moves}"
+
+            formfield.label_from_instance = full_label
             return formfield
+
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
