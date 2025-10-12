@@ -212,9 +212,77 @@
   z-index: 5; /* 🔥 Serve per stare sopra la scacchiera */
 }
 
+/* ===== HEADER FISSO IN ALTO ===== */
+.header-bar {
+  width: 100%;
+  background: #2c3e50;
+  color: white;
+  padding: 10px 25px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.breadcrumb-header a {
+  text-decoration: none;
+  color: #a5d6a7;
+  font-weight: 600;
+}
+
+.breadcrumb-header a:hover {
+  color: #81c784;
+  text-decoration: underline;
+}
+
+.breadcrumb-header span {
+  color: #ddd;
+}
+
+.header-actions .btn-nav {
+  background: #43a047;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.header-actions .btn-nav:hover {
+  background: #388e3c;
+}
+
+/* Spazio per non far coprire la pagina dal header */
+.container {
+  margin-top: 70px;
+}
+
+
 </style>
 </head>
 <body>
+  <!-- 🔝 HEADER INTERATTIVO -->
+<header class="header-bar">
+  <div class="header-content">
+    <div class="breadcrumb-header">
+      <a href="{% url 'opening_list' %}">ChessRepertoire</a> ›
+      <a href="{% url 'opening_detail' root.id %}">{{ root.nome }}</a>
+      {% if line %}
+        › <span>Linea {{ line.numero }}</span>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
 
 <div class="container">
 
@@ -241,6 +309,7 @@
 
 
   <div class="sidebar">
+    
     <div class="sidebar-header">
   {{ root.nome }} — Linea {{ line_position }} di {{ total_lines }}
 </div>
