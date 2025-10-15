@@ -52,6 +52,12 @@
 <p>{{ opening.descrizione }}</p>
 
 <h3>📂 Linee e Varianti</h3>
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'download_opening_lines' opening.id %}" class="btn btn-success">
+    📥 Scarica linee in TXT
+  </a>
+</div>
+
 
 <ul class="tree">
   {% for line in main_lines %}

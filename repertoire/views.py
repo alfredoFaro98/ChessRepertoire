@@ -125,5 +125,31 @@ def analisi_domande(request):
     return render(request, 'repertoire/analisi_domande.html')
 
 
+from django.http import HttpResponse
+from .models import OpeningRoot
+
+def download_opening_lines(request, pk):
+    """Esporta tutte le linee di un'apertura in un file TXT scaricabile"""
+    try:
+        root = OpeningRoot.objects.get(pk=pk)
+    except OpeningRoot.DoesNotExist:
+        return HttpResponse("Apertura non trovata", status=404)
+
+    # Recupera tutte le linee ordinate per numero
+    lines = root.linee.all().order_by("numero")
+
+    # Costruisce il contenuto del file
+    content = ""
+    for line in lines:
+        # Rimuove qualsiasi newline presente nella stringa originale
+        clean_pgn = " ".join(line.pgn.split())
+        content += clean_pgn + "\r\n"
+
+
+    # Crea la risposta HTTP come file TXT
+    response = HttpResponse(content, content_type="text/plain; charset=utf-8")
+    filename = f"{root.nome.replace(' ', '_').lower()}.txt"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
