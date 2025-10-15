@@ -7,4 +7,5 @@ urlpatterns = [
     path('opening/<int:root_id>/line/<int:line_num>/', views.line_detail, name='line_detail'),
     path('analisi-domande/', views.analisi_domande, name='analisi_domande'),
     path("opening/<int:pk>/download/", views.download_opening_lines, name="download_opening_lines"),
+    path("opening/<int:root_id>/line/<int:numero>/train/", views.line_training, name="line_training"),
 ]

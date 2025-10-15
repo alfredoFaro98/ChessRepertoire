@@ -152,4 +152,8 @@ def download_opening_lines(request, pk):
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
+def line_training(request, root_id, numero):
+    from .models import OpeningLine
+    line = OpeningLine.objects.get(root_id=root_id, numero=numero)
+    return render(request, "repertoire/line_training.html", {"line": line})
 

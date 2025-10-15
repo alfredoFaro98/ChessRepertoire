@@ -315,6 +315,10 @@
 </div>
 <div style="background:#f2f2f2; padding:8px 12px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
   <a href="{% url 'opening_detail' root.id %}" class="btn-nav">⬅ Torna all'apertura</a>
+  <a href="{% url 'line_training' line.root.id line.numero %}" class="btn-nav" style="background:#1976d2;">
+  🧠 Train
+</a>
+
 </div>
 
 {% if prev_line or next_line %}
