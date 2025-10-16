@@ -2,7 +2,7 @@
 from repertoire.models import OpeningRoot, OpeningLine
 
 FILE_NAME = "update.txt"
-ROOT_NAME = "Gioco Italiano"
+ROOT_NAME = "Rousseau Gambit"
 
 # 🔹 Utility per normalizzare le PGN (senza numeri o punteggi)
 def clean_pgn(pgn):
