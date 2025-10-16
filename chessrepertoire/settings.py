@@ -122,3 +122,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+STATIC_URL = "/static/"
+
+# (opzionale se hai solo static nelle app) — va bene lasciarlo vuoto
+# STATICFILES_DIRS = [ BASE_DIR / "static" ]  # solo se hai una cartella "static" a livello di progetto
+
+# Necessario per collectstatic:
+STATIC_ROOT = BASE_DIR / "static_collected"   # verrà creata e popolata
