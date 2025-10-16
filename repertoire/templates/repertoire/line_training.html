@@ -8,59 +8,173 @@
 
 <link rel="stylesheet" href="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.css' %}">
 <style>
-  body { background:#f5f5f5; font-family:Arial, sans-serif; text-align:center; margin:0; padding:24px; }
-  #board { width:480px; margin:0 auto; }
+  body {
+    background:#f5f5f5;
+    font-family:Arial, sans-serif;
+    margin:0;
+    padding:0;
+  }
+
+  /* ===== HEADER ===== */
+  .header-bar {
+    width: 100%;
+    background: #2c3e50;
+    color: white;
+    padding: 10px 25px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+  }
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .breadcrumb-header a {
+    text-decoration: none;
+    color: #a5d6a7;
+    font-weight: 600;
+  }
+  .breadcrumb-header a:hover {
+    color: #81c784;
+    text-decoration: underline;
+  }
+  .breadcrumb-header span { color: #ddd; }
+
+  /* ===== LAYOUT ===== */
+  .container {
+    margin-top: 80px;
+    text-align:center;
+  }
+
+  #board {
+    width:480px;
+    margin:0 auto;
+    border:4px solid #333;
+    border-radius:6px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.25);
+  }
+
+  /* === Colori verde/bianco === */
+  .white-1e1d7 { background-color:#eeeed2; }
+  .black-3c85d { background-color:#769656; }
+
   #feedback { font-size:18px; margin-top:12px; font-weight:700; }
   .correct { color:#2e7d32; }
   .wrong   { color:#c62828; }
+
   .bar { width:480px; margin:10px auto 0; height:8px; background:#e0e0e0; border-radius:4px; overflow:hidden; }
   .bar > div { height:100%; width:0%; background:#43a047; transition:width .25s; }
-  .toolbar { margin:10px 0 18px; display:flex; gap:8px; justify-content:center; align-items:center; }
-  .btn { background:#1976d2; color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+
+  .toolbar {
+    margin:10px 0 18px;
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .btn {
+    background:#1976d2;
+    color:#fff;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+    cursor:pointer;
+  }
   .btn:hover { background:#1565c0; }
-  .btn.light { background:#eee; color:#333; }
+  .btn.light {
+    background:#eee;
+    color:#333;
+  }
   .btn.light:hover { background:#e0e0e0; }
+
   .muted { color:#666; font-size:14px; }
+  .nav-arrows {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin-bottom:15px;
+  }
+  .arrow {
+    font-size:28px;
+    cursor:pointer;
+    user-select:none;
+    color:#333;
+    transition:0.2s;
+  }
+  .arrow:hover { color:#1976d2; transform:scale(1.15); }
+  .arrow.disabled { opacity:0.3; cursor:default; transform:none; }
 </style>
 </head>
 <body>
 
-<h2>{{ line.root.nome }} — Linea {{ line.numero }}</h2>
+<!-- ===== HEADER BREADCRUMB ===== -->
+<header class="header-bar">
+  <div class="header-content">
+    <div class="breadcrumb-header">
+      <a href="{% url 'opening_list' %}">ChessRepertoire</a> ›
+      <a href="{% url 'opening_detail' line.root.id %}">{{ line.root.nome }}</a> ›
+      <span>Allenamento — Linea {{ line.numero }}</span>
+    </div>
+  </div>
+</header>
 
-<div class="toolbar">
-  <button id="asWhite" class="btn light">Allena il Bianco</button>
-  <button id="asBlack" class="btn light">Allena il Nero</button>
-  <span class="muted">Consiglio: scegli il lato che muove per primo nella linea.</span>
+<div class="container">
+
+  <!-- 🔹 Frecce di navigazione -->
+  <div class="nav-arrows">
+    {% if prev_line %}
+      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id prev_line.numero %}'">⬅</span>
+    {% else %}
+      <span class="arrow disabled">⬅</span>
+    {% endif %}
+
+    <span class="muted">Allenamento linea {{ line.numero }}</span>
+
+    {% if next_line %}
+      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'">➡</span>
+    {% else %}
+      <span class="arrow disabled">➡</span>
+    {% endif %}
+  </div>
+
+  <!-- 🔹 Toolbar lato -->
+  <div class="toolbar">
+    <button id="asWhite" class="btn light">Allena il Bianco</button>
+    <button id="asBlack" class="btn light">Allena il Nero</button>
+    <span class="muted">Scegli il lato da allenare</span>
+  </div>
+
+  <div id="board"></div>
+  <div class="bar"><div id="progress"></div></div>
+  <div id="feedback"></div>
+
+  <div style="margin-top:10px">
+    <button id="restartBtn" class="btn" style="display:none;">🔁 Ricomincia</button>
+    <button class="btn light" onclick="window.location.href='{% url 'line_detail' line.root.id line.numero %}'">⬅ Torna alla linea</button>
+  </div>
 </div>
 
-<div id="board"></div>
-<div class="bar"><div id="progress"></div></div>
-<div id="feedback"></div>
-
-<div style="margin-top:10px">
-  <button id="restartBtn" class="btn" style="display:none;">🔁 Ricomincia</button>
-  <button class="btn light" onclick="window.location.href='{% url 'line_detail' line.root.id line.numero %}'">⬅ Torna alla linea</button>
-</div>
-
-<!-- Regole -->
+<!-- JS -->
 <script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
-<!-- jQuery (alcuni build 1.0.0 di chessboard la richiedono) -->
 <script src="{% static 'vendor/jquery/jquery-3.7.1.min.js' %}"></script>
-<!-- UI scacchiera -->
 <script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
 
 <script>
 (function () {
-  // PNG locali: es. /static/vendor/chessboardjs/img/wP.png
   const PIECE_BASE = "{% static 'vendor/chessboardjs/img/' %}";
-
-  // PGN -> array SAN
   const pgn = `{{ line.pgn|escapejs }}`;
   const movesSAN = pgn
-    .replace(/{[^}]*}/g,'')           // commenti { ... }
-    .replace(/\$\d+/g,'')             // NAGs
-    .replace(/\([^)]*\)/g,'')         // varianti (se presenti)
-    .replace(/\d+\.(\.\.)?/g,' ')     // numeri mosse
+    .replace(/{[^}]*}/g,'')
+    .replace(/\$\d+/g,'')
+    .replace(/\([^)]*\)/g,'')
+    .replace(/\d+\.(\.\.)?/g,' ')
     .trim()
     .split(/\s+/)
     .filter(x => x && !['1-0','0-1','1/2-1/2','*'].includes(x));
@@ -69,7 +183,7 @@
   const progressEl = document.getElementById('progress');
   const feedback = document.getElementById('feedback');
   const restartBtn = document.getElementById('restartBtn');
-  let sideToTrain = 'w';  // default
+  let sideToTrain = 'w';
   let idx = 0;
 
   const board = Chessboard('board', {
@@ -84,11 +198,22 @@
     onSnapEnd: () => board.position(game.fen()),
   });
 
-  setSide('w'); // di default allena il Bianco
+  setSide('w');
 
-  // ===== Controls per scegliere il lato =====
   document.getElementById('asWhite').onclick = () => setSide('w');
   document.getElementById('asBlack').onclick = () => setSide('b');
+
+  // Frecce tastiera
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') {
+      const prev = "{{ prev_line.numero|default:'' }}";
+      if (prev) window.location.href = `{% url 'line_training' line.root.id 0 %}`.replace('/0/', '/' + prev + '/');
+    }
+    if (e.key === 'ArrowRight') {
+      const next = "{{ next_line.numero|default:'' }}";
+      if (next) window.location.href = `{% url 'line_training' line.root.id 0 %}`.replace('/0/', '/' + next + '/');
+    }
+  });
 
   function setSide(side) {
     sideToTrain = side;
@@ -99,13 +224,11 @@
     setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} — gioca la mossa corretta`, '');
     restartBtn.style.display = 'none';
     updateProgress();
-    // se si allena il Nero, fai muovere subito il Bianco con la prima SAN
     if (side === 'b' && movesSAN.length) {
       try { game.move(movesSAN[idx]); idx++; board.position(game.fen()); } catch(e) { console.warn(e); }
     }
   }
 
-  // ===== Helpers UI =====
   function setFeedback(text, cls){
     feedback.className = cls || '';
     feedback.textContent = text;
@@ -117,17 +240,16 @@
   function highlight(sq){
     const el = squareEl(sq); if (!el) return;
     const dark = el.classList.contains('black-3c85d');
-    const base = dark ? '#b58863' : '#f0d9b5';
+    const base = dark ? '#769656' : '#eeeed2';
     el.style.background = `radial-gradient(circle, rgba(0,184,212,.9) 22%, ${base} 23%)`;
   }
   function removeHighlights(){
     document.querySelectorAll('#board .square-55d63').forEach(el => el.style.background = '');
   }
 
-  // ===== Eventi chessboard =====
   function onDragStart (source, piece) {
     if (game.game_over()) return false;
-    if (game.turn() !== sideToTrain) return false;              // muovi solo il tuo lato
+    if (game.turn() !== sideToTrain) return false;
     if (sideToTrain === 'w' && piece.startsWith('b')) return false;
     if (sideToTrain === 'b' && piece.startsWith('w')) return false;
   }
@@ -135,7 +257,7 @@
   function onDrop (source, target) {
     removeHighlights();
     const mv = game.move({ from: source, to: target, promotion: 'q' });
-    if (!mv) return 'snapback'; // illegale
+    if (!mv) return 'snapback';
 
     const expected = movesSAN[idx] || null;
     if (!expected || mv.san !== expected) {
@@ -144,13 +266,11 @@
       return 'snapback';
     }
 
-    // ✅ corretta
     idx++;
     setFeedback(`✅ Corretto: ${mv.san}`, 'correct');
     board.position(game.fen());
     updateProgress();
 
-    // Autoplay avversario
     if (idx < movesSAN.length) {
       const replySAN = movesSAN[idx];
       try { game.move(replySAN); idx++; board.position(game.fen()); updateProgress(); }

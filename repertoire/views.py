@@ -155,5 +155,13 @@ def download_opening_lines(request, pk):
 def line_training(request, root_id, numero):
     from .models import OpeningLine
     line = OpeningLine.objects.get(root_id=root_id, numero=numero)
-    return render(request, "repertoire/line_training.html", {"line": line})
 
+    prev_line = OpeningLine.objects.filter(root_id=root_id, numero__lt=numero).order_by('-numero').first()
+    next_line = OpeningLine.objects.filter(root_id=root_id, numero__gt=numero).order_by('numero').first()
+
+    context = {
+        "line": line,
+        "prev_line": prev_line,
+        "next_line": next_line,
+    }
+    return render(request, "repertoire/line_training.html", context)
