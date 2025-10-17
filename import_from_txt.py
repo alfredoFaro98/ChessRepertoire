@@ -2,7 +2,7 @@
 from repertoire.models import OpeningRoot, OpeningLine
 
 FILE_NAME = "update.txt"
-ROOT_NAME = "Rousseau Gambit"
+ROOT_NAME = "Fried Liver Attack"
 
 # 🔹 Utility per normalizzare le PGN (senza numeri o punteggi)
 def clean_pgn(pgn):
@@ -16,8 +16,8 @@ def clean_pgn(pgn):
 root, _ = OpeningRoot.objects.get_or_create(
     nome=ROOT_NAME,
     defaults={
-        "moves": "1.e4 e5 2.Nf3 Nc6 3.Bc4",
-        "descrizione": "Apertura classica italiana: sviluppo rapido e pressione su f7.",
+        "moves": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6",
+        "descrizione": "",
         "difesa": False,
     },
 )
