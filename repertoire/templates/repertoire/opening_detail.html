@@ -46,6 +46,27 @@
   font-family: monospace;
   color: #16a085;
 }
+
+.badge-count {
+  display: inline-block;
+  min-width: 22px;
+  text-align: center;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  padding: 2px 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+.badge-count.low    { background: #c62828; } /* rosso */
+.badge-count.medium { background: #f9a825; } /* giallo */
+.badge-count.high   { background: #43a047; } /* verde */
+.badge-count.top    { background: #7b1fa2; } /* viola */
+.badge-count:hover  { transform: scale(1.15); }
+
+
+
 </style>
 
 <h2>{{ opening.nome }}</h2>

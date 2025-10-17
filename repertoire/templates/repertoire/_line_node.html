@@ -1,4 +1,4 @@
-<li class="line-node">
+<li class="line-node" style="display:flex;align-items:center;gap:8px;">
   {% with children=line.varianti.all %}
     {% if children.count %}
       <span class="toggle collapsed">▶</span>
@@ -6,10 +6,23 @@
       <span class="toggle empty"></span>
     {% endif %}
 
-    <!-- link alla linea -->
-    <a href="{% url 'line_detail' line.root.id line.numero %}">
+    <!-- 🔹 Link alla linea -->
+    <a href="{% url 'line_detail' line.root.id line.numero %}" style="flex:1;">
       <span class="mosse">{{ line.pgn }}</span>
     </a>
+
+    <!-- 🔹 Badge colorato con logica -->
+    {% with line.completamenti as c %}
+      <span class="badge-count
+        {% if c == 0 %}low
+        {% elif c < 7 %}medium
+        {% elif c < 15 %}high
+        {% else %}top
+        {% endif %}"
+        title="Completata {{ c }} volte">
+        {{ c }}
+      </span>
+    {% endwith %}
 
     {% if children.count %}
       <ul class="nested">
