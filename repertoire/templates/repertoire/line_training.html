@@ -1,5 +1,4 @@
 {% load static %}
-{% get_static_prefix as STATIC_PREFIX %}
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -15,7 +14,6 @@
     padding:0;
   }
 
-  /* ===== HEADER ===== */
   .header-bar {
     width: 100%;
     background: #2c3e50;
@@ -34,13 +32,8 @@
   }
   .breadcrumb-header a:hover { color: #81c784; }
 
-  /* ===== CONTAINER ===== */
-  .container {
-    margin-top: 90px;
-    text-align:center;
-  }
+  .container { margin-top: 90px; text-align:center; }
 
-  /* ===== BOARD ===== */
   #board {
     width:480px;
     margin:0 auto;
@@ -51,7 +44,6 @@
   .white-1e1d7 { background-color:#eeeed2; }
   .black-3c85d { background-color:#769656; }
 
-  /* ===== BUTTONS ===== */
   .toolbar {
     margin:20px 0 25px;
     display:flex;
@@ -76,37 +68,18 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
   }
 
-  .btn.primary {
-    background:#1976d2;
-    color:#fff;
-  }
-  .btn.primary:hover {
-    background:#145ca1;
-    box-shadow: 0 3px 8px rgba(25,118,210,0.4);
-  }
+  .btn.primary { background:#1976d2; color:#fff; }
+  .btn.primary:hover { background:#145ca1; box-shadow: 0 3px 8px rgba(25,118,210,0.4); }
 
-  .btn.success {
-    background:#43a047;
-    color:#fff;
-  }
-  .btn.success:hover {
-    background:#2e7d32;
-    box-shadow:0 3px 8px rgba(67,160,71,0.35);
-  }
+  .btn.success { background:#43a047; color:#fff; }
+  .btn.success:hover { background:#2e7d32; box-shadow:0 3px 8px rgba(67,160,71,0.35); }
 
-  .btn.light {
-    background:#e0e0e0;
-    color:#333;
-  }
-  .btn.light:hover {
-    background:#d5d5d5;
-  }
-
+  .btn.light { background:#e0e0e0; color:#333; }
+  .btn.light:hover { background:#d5d5d5; }
   .btn:active { transform:scale(0.97); }
 
   .muted { color:#666; font-size:14px; }
 
-  /* ===== NAV ARROWS ===== */
   .nav-arrows {
     display:flex;
     justify-content:center;
@@ -114,17 +87,10 @@
     gap:12px;
     margin-bottom:20px;
   }
-  .arrow {
-    font-size:30px;
-    cursor:pointer;
-    user-select:none;
-    color:#2c3e50;
-    transition:0.2s;
-  }
+  .arrow { font-size:30px; cursor:pointer; user-select:none; color:#2c3e50; transition:0.2s; }
   .arrow:hover { color:#1976d2; transform:scale(1.2); }
   .arrow.disabled { opacity:0.3; cursor:default; transform:none; }
 
-  /* ===== FEEDBACK + BAR ===== */
   #feedback { font-size:18px; margin-top:15px; font-weight:700; }
   .correct { color:#2e7d32; }
   .wrong   { color:#c62828; }
@@ -135,27 +101,23 @@
 </head>
 <body>
 
-<!-- ===== HEADER BREADCRUMB ===== -->
 <header class="header-bar">
   <div class="breadcrumb-header">
     <a href="{% url 'opening_list' %}">ChessRepertoire</a> ›
     <a href="{% url 'opening_detail' line.root.id %}">{{ line.root.nome }}</a> ›
     <span>Allenamento — Linea {{ line.numero }}</span>
+    <p id="comp-count">Completata {{ line.completamenti }} volte</p>
   </div>
 </header>
 
 <div class="container">
-
-  <!-- 🔹 Frecce di navigazione -->
   <div class="nav-arrows">
     {% if prev_line %}
       <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id prev_line.numero %}'">⬅</span>
     {% else %}
       <span class="arrow disabled">⬅</span>
     {% endif %}
-
     <span class="muted">Allenamento linea {{ line.numero }}</span>
-
     {% if next_line %}
       <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'">➡</span>
     {% else %}
@@ -163,7 +125,6 @@
     {% endif %}
   </div>
 
-  <!-- 🔹 Toolbar lato -->
   <div class="toolbar">
     <button id="asWhite" class="btn light">♔ Allena il Bianco</button>
     <button id="asBlack" class="btn light">♚ Allena il Nero</button>
@@ -180,11 +141,21 @@
   </div>
 </div>
 
-<!-- JS -->
-<script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
+<!-- Librerie -->
 <script src="{% static 'vendor/jquery/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
 <script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
 
+<!-- === STEP 4: CSRF helper === -->
+<script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+</script>
+
+<!-- === SCRIPT PRINCIPALE === -->
 <script>
 (function () {
   const PIECE_BASE = "{% static 'vendor/chessboardjs/img/' %}";
@@ -218,21 +189,8 @@
   });
 
   setSide('w');
-
   document.getElementById('asWhite').onclick = () => setSide('w');
   document.getElementById('asBlack').onclick = () => setSide('b');
-
-  // Frecce tastiera
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft') {
-      const prev = "{{ prev_line.numero|default:'' }}";
-      if (prev) window.location.href = `{% url 'line_training' line.root.id 0 %}`.replace('/0/', '/' + prev + '/');
-    }
-    if (e.key === 'ArrowRight') {
-      const next = "{{ next_line.numero|default:'' }}";
-      if (next) window.location.href = `{% url 'line_training' line.root.id 0 %}`.replace('/0/', '/' + next + '/');
-    }
-  });
 
   function setSide(side) {
     sideToTrain = side;
@@ -296,9 +254,11 @@
       catch(e) { console.warn('Reply SAN non giocabile:', replySAN, e); }
     }
 
+    // 👇 SEZIONE FINALE — linea completata
     if (idx >= movesSAN.length) {
       setFeedback('🎉 Linea completata!', 'correct');
       restartBtn.style.display = 'inline-block';
+      segnalaFineLinea({{ line.id }});
     }
   }
 
@@ -313,5 +273,31 @@
   restartBtn.addEventListener('click', () => setSide(sideToTrain));
 })();
 </script>
+
+<!-- === SEGNA COMpletamento === -->
+<script>
+function segnalaFineLinea(lineId) {
+  const url = "{% url 'incrementa_completamenti' 0 %}".replace("/0/", "/" + lineId + "/");
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": getCookie("csrftoken"),
+      "X-Requested-With": "XMLHttpRequest"
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      console.log("✅ Linea completata! Totale:", data.totale);
+      const header = document.getElementById("comp-count");
+      if (header) header.textContent = `Completata ${data.totale} volte`;
+    } else {
+      console.error("Errore:", data.error);
+    }
+  })
+  .catch(err => console.error("Errore fetch:", err));
+}
+</script>
+
 </body>
 </html>

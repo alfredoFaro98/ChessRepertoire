@@ -21,6 +21,9 @@ class OpeningLine(models.Model):
     note = models.TextField(blank=True, null=True)
     flipped = models.BooleanField(default=False)
 
+    completamenti = models.PositiveIntegerField(default=0)
+
+
     # ⬇️ gerarchia (varianti figlie)
     parent = models.ForeignKey(
         "self",

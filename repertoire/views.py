@@ -165,3 +165,18 @@ def line_training(request, root_id, numero):
         "next_line": next_line,
     }
     return render(request, "repertoire/line_training.html", context)
+
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt  # 👈 solo se necessario
+from django.http import JsonResponse
+from .models import OpeningLine
+
+@require_POST
+def incrementa_completamenti(request, line_id):
+    try:
+        line = OpeningLine.objects.get(pk=line_id)
+        line.completamenti += 1
+        line.save()
+        return JsonResponse({"success": True, "totale": line.completamenti})
+    except OpeningLine.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Linea non trovata"}, status=404)
