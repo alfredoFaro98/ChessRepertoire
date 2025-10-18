@@ -2,7 +2,7 @@
 from repertoire.models import OpeningRoot, OpeningLine
 
 FILE_NAME = "update.txt"
-ROOT_NAME = "Fried Liver Attack"
+ROOT_NAME = "Gioco Italiano"
 
 # 🔹 Utility per normalizzare le PGN (senza numeri o punteggi)
 def clean_pgn(pgn):
