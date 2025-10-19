@@ -7,22 +7,21 @@
     {% endif %}
 
     <!-- 🔹 Link alla linea -->
-    <a href="{% url 'line_detail' line.root.id line.numero %}" style="flex:1;">
+    <a href="{% url 'line_detail' line.root.id line.numero %}" style="flex:1; display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit;">
       <span class="mosse">{{ line.pgn }}</span>
-    </a>
 
-    <!-- 🔹 Badge colorato con logica -->
-    {% with line.completamenti as c %}
-      <span class="badge-count
-        {% if c == 0 %}low
-        {% elif c < 7 %}medium
-        {% elif c < 15 %}high
-        {% else %}top
-        {% endif %}"
-        title="Completata {{ c }} volte">
-        {{ c }}
-      </span>
-    {% endwith %}
+      {% with line.completamenti as c %}
+        <span class="badge-count
+          {% if c == 0 %}low
+          {% elif c < 7 %}medium
+          {% elif c < 15 %}high
+          {% else %}top
+          {% endif %}"
+          title="Completata {{ c }} volte">
+          {{ c }}
+        </span>
+      {% endwith %}
+    </a>
 
     {% if children.count %}
       <ul class="nested">

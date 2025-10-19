@@ -7,6 +7,9 @@
 7. INSERIRE LA SEZIONE DEI GAMBIT
 8. MODIFICARE SCRIPT PER INSERIMENTO DA TXT PER GESTIRE SE è FLIPPED ANCHE DALLE LINEE
 9. METTERE CHE DOPO CHE L'HO INDOVINATA ALLORA MI DEVE MOSTRARE LE MOSSE
+10. click sul numero di ripetizioni
+11. home con temi tattici
+12. home con numero di linee mancanti da completare
 
 approfondire 
 e4 e5 nf3 nf6 (difesa petrov)
