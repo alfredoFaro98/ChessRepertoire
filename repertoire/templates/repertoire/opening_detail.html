@@ -81,12 +81,28 @@
 
 
 <ul class="tree">
-  {% for line in main_lines %}
-    {% include "repertoire/_line_node.html" with line=line %}
+  {% for line in all_lines %}
+  <li class="line-node" style="display:flex;align-items:center;gap:8px;">
+    <a href="{% url 'line_detail' line.root.id line.numero %}" style="flex:1;text-decoration:none;color:inherit;">
+      <span class="mosse">{{ line.pgn }}</span>
+      {% with line.completamenti as c %}
+        <span class="badge-count
+          {% if c == 0 %}low
+          {% elif c < 7 %}medium
+          {% elif c < 15 %}high
+          {% else %}top
+          {% endif %}"
+          title="Completata {{ c }} volte">
+          {{ c }}
+        </span>
+      {% endwith %}
+    </a>
+  </li>
   {% empty %}
     <p>Nessuna linea registrata per questa apertura.</p>
   {% endfor %}
 </ul>
+
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {

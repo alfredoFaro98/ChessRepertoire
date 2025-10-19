@@ -59,33 +59,23 @@ def opening_list(request):
 
 from django.shortcuts import render, get_object_or_404
 from .models import OpeningRoot, OpeningLine
-
+from django.db.models.functions import Length
 def opening_detail(request, opening_id):
-    opening = get_object_or_404(OpeningRoot, id=opening_id)
+    opening = get_object_or_404(OpeningRoot, pk=opening_id)
 
-    # Tutte le linee di questa apertura (root)
-    all_lines = list(OpeningLine.objects.filter(root=opening).order_by("numero", "id"))
-
-    # Mappa {line.id: posizione_reale}
-    positions = {line.id: idx + 1 for idx, line in enumerate(all_lines)}
-
-    # Linee principali per costruire l’albero
-    main_lines = (
-        opening.linee
-        .filter(parent__isnull=True)
-        .prefetch_related(
-            "varianti",
-            "varianti__varianti",
-            "varianti__varianti__varianti",
-            "varianti__varianti__varianti__varianti"
-        )
+    all_lines = (
+        OpeningLine.objects
+        .filter(root=opening)
+        .annotate(pgn_len=Length('pgn'))
+        .order_by('pgn_len')
     )
 
     return render(request, "repertoire/opening_detail.html", {
         "opening": opening,
-        "main_lines": main_lines,
-        "positions": positions,  # 👈 passiamo la mappa
+        "all_lines": all_lines,
     })
+
+
 
 
 
