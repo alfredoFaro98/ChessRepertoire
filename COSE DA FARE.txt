@@ -8,6 +8,10 @@
 8. MODIFICARE SCRIPT PER INSERIMENTO DA TXT PER GESTIRE SE è FLIPPED ANCHE DALLE LINEE
 9. METTERE CHE DOPO CHE L'HO INDOVINATA ALLORA MI DEVE MOSTRARE LE MOSSE
 
+approfondire 
+e4 e5 nf3 nf6 (difesa petrov)
+(shillburn GAMBIT)
+
 
 exec(open("import_from_txt.py", encoding="utf-8").read())
 
