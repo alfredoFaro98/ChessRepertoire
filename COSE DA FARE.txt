@@ -11,6 +11,20 @@
 11. home con temi tattici
 12. home con numero di linee mancanti da completare
 
+// Seleziona tutti i blocchi di testo che contengono le linee PGN
+let lines = [...document.querySelectorAll('div')].map(el => el.innerText)
+    .filter(t => t.includes('1.') || t.includes('e4'));
+
+// Rimuove duplicati
+lines = [...new Set(lines)];
+
+// Mostra in console
+console.log(lines.join('\n\n'));
+
+// Copia negli appunti
+copy(lines.join('\n\n'));
+
+
 approfondire 
 e4 e5 nf3 nf6 (difesa petrov)
 (shillburn GAMBIT)
