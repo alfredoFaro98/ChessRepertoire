@@ -1,0 +1,286 @@
+{% extends "repertoire/base.html" %}
+{% block title %}Ripasso - Chess Repertoire{% endblock %}
+{% block content %}
+<style>
+  .dash { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px 16px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+  }
+  .stat-card .num {
+    font-size: 34px;
+    font-weight: 800;
+    color: #2c3e50;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-card .label { font-size: 13px; color: #777; }
+  h2 {
+    color: #2c3e50;
+    margin: 0 0 16px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section { margin-bottom: 36px; }
+  .section-title-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--accent);
+  }
+  .review-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .review-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .review-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(143, 212, 163, 0.34);
+    background: rgba(143, 212, 163, 0.05);
+    color: #8fd4a3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+  .review-tab:hover {
+    background: rgba(143, 212, 163, 0.08);
+    color: #d7f7e1;
+    border-color: rgba(143, 212, 163, 0.7);
+    box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+    transform: translateY(-1px);
+  }
+  .review-tab.active {
+    background: rgba(143, 212, 163, 0.12);
+    color: #d7f7e1;
+    border-color: rgba(143, 212, 163, 0.75);
+  }
+  .review-note {
+    font-size: 13px;
+    color: #8a968e;
+  }
+  .due-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .due-item {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .due-item .pgn-preview {
+    font-family: monospace;
+    font-size: 13px;
+    color: #16a085;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .due-item .meta { font-size: 12px; color: #999; white-space: nowrap; }
+  .btn-train {
+    background: transparent;
+    color: #8fc7ff;
+    border: 1px solid rgba(143, 199, 255, 0.42);
+    border-radius: 10px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-train:hover {
+    background: rgba(143, 199, 255, 0.08);
+    color: #dcedff;
+    border-color: rgba(143, 199, 255, 0.72);
+    box-shadow: 0 10px 24px rgba(80, 145, 255, 0.12), 0 0 18px rgba(80, 145, 255, 0.12);
+    transform: translateY(-1px);
+  }
+  .btn-train .ui-icon { width: 15px; height: 15px; }
+  .empty-state {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+    color: #888;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  }
+  .empty-state .state-icon {
+    width: 40px;
+    height: 40px;
+    color: var(--accent);
+    margin: 0 auto 10px;
+    display: block;
+  }
+  .progress-list { display: flex; flex-direction: column; gap: 12px; }
+  .progress-item {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .progress-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .progress-name:hover { color: #27ae60; }
+  .progress-pct { font-size: 13px; color: #888; }
+  .progress-bar-bg {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: #43a047;
+    transition: width 0.4s;
+  }
+  .progress-bar-fill.low { background: #c62828; }
+  .progress-bar-fill.medium { background: #22c55e; }
+  .progress-bar-fill.high { background: #43a047; }
+  .progress-bar-fill.full { background: #7b1fa2; }
+
+  @media (max-width: 480px) {
+    .stat-card .num { font-size: 26px; }
+  }
+</style>
+
+<div class="dash">
+  <div class="review-toolbar">
+    <div class="review-tabs">
+      <a href="{% url 'ripasso' %}?filtro=tutti" class="review-tab {% if filtro == 'tutti' %}active{% endif %}">Tutte</a>
+      <a href="{% url 'ripasso' %}?filtro=attacchi" class="review-tab {% if filtro == 'attacchi' %}active{% endif %}">Attacchi</a>
+      <a href="{% url 'ripasso' %}?filtro=difese" class="review-tab {% if filtro == 'difese' %}active{% endif %}">Difese</a>
+    </div>
+    <div class="review-note">Ripasso personalizzato per tipo di apertura</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="num">{{ total_lines }}</div>
+      <div class="label">Linee totali</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ lines_studied }}</div>
+      <div class="label">Linee studiate</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ new_lines_count }}</div>
+      <div class="label">Linee nuove</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ total_completions }}</div>
+      <div class="label">Sessioni totali</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ due_lines.count }}</div>
+      <div class="label">Da ripassare</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>
+      <svg class="section-title-icon" aria-hidden="true"><use href="#icon-calendar"></use></svg>
+      <span>Ripasso personalizzato</span>
+    </h2>
+    {% if due_lines %}
+      <div class="due-list">
+        {% for line in due_lines %}
+          <div class="due-item">
+            <div>
+              <div style="font-size:12px;color:#888;margin-bottom:3px;">
+                {{ line.root.nome }} - Linea {{ line.numero }}
+              </div>
+              <div class="pgn-preview">{{ line.pgn|truncatechars:80 }}</div>
+            </div>
+            <div class="meta">Scade: {{ line.srs_due_date }}</div>
+            <a class="btn-train" href="{% url 'line_training' line.root.id line.numero %}">
+              <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg>
+              <span>Allena</span>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <svg class="state-icon" aria-hidden="true"><use href="#icon-check"></use></svg>
+        <strong>Nessuna linea in scadenza oggi.</strong><br>
+        <span>Torna domani o inizia a studiare nuove aperture.</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>
+      <svg class="section-title-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+      <span>Progresso per apertura</span>
+    </h2>
+    <div class="progress-list">
+      {% for op in openings_progress %}
+        {% with op.pct as p %}
+          <div class="progress-item">
+            <div class="progress-header">
+              <a class="progress-name" href="{% url 'opening_detail' op.obj.id %}">{{ op.obj.nome }}</a>
+              <span class="progress-pct">{{ op.studied }}/{{ op.total }} linee ({{ p }}%)</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill {% if p == 0 %}low{% elif p < 50 %}medium{% elif p < 100 %}high{% else %}full{% endif %}" style="width: {{ p }}%;"></div>
+            </div>
+          </div>
+        {% endwith %}
+      {% empty %}
+        <p style="color:#888;">Nessuna apertura trovata.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

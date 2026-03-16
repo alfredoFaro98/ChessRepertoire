@@ -2,20 +2,417 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Chess Repertoire{% endblock %}</title>
+  {% load static %}
+  <script>
+    (function() {
+      if (localStorage.getItem('darkMode') !== '0') {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
-    a { color: #2c3e50; text-decoration: none; }
-    a:hover { color: #27ae60; }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #f3f4f6;
+      --bg-card: #ffffff;
+      --bg-header: #18212b;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --border: #d1d5db;
+      --input-bg: #fff;
+      --surface-alt: #eef2f7;
+      --accent: #2f6f5e;
+      --accent-strong: #245748;
+    }
+
+    html.dark {
+      --bg: #0f141a;
+      --bg-card: #182028;
+      --bg-header: #0b1015;
+      --text: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border: #334155;
+      --input-bg: #111827;
+      --surface-alt: #1f2937;
+      --accent: #8cb6a7;
+      --accent-strong: #b7d4c9;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background .25s, color .25s;
+    }
+
+    a {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    a:hover { color: var(--accent); }
+
+    .ui-icon {
+      width: 22px;
+      height: 22px;
+      display: inline-block;
+      vertical-align: middle;
+      flex: 0 0 auto;
+    }
+
+    .icon-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    nav {
+      background: var(--bg-header);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      min-height: 90px;
+    }
+
+    .nav-logo {
+      height: 70px;
+      width: auto;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
+
+    nav .brand {
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: 8px;
+    }
+
+    nav .brand:hover { color: #d8e7e1; }
+
+    nav .brand .ui-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    nav a.nav-link {
+      color: #c6d8d1;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background .2s, color .2s;
+    }
+
+    nav a.nav-link:hover {
+      background: rgba(255,255,255,.09);
+      color: white;
+    }
+
+    #darkToggle {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #dbe5e1;
+      cursor: pointer;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, border-color .2s, color .2s;
+    }
+
+    #darkToggle:hover {
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    html.dark h1,
+    html.dark h2,
+    html.dark h3,
+    html.dark h4,
+    html.dark p,
+    html.dark span,
+    html.dark label { color: var(--text); }
+
+    html.dark .card,
+    html.dark .stat-card,
+    html.dark .due-item,
+    html.dark .progress-item,
+    html.dark .empty-state,
+    html.dark .srs-panel,
+    html.dark .help {
+      background: var(--bg-card) !important;
+      color: var(--text) !important;
+    }
+
+    html.dark .stat-card .num { color: var(--text) !important; }
+    html.dark .stat-card .label { color: var(--text-muted) !important; }
+    html.dark .due-item .meta { color: var(--text-muted) !important; }
+    html.dark .due-item .pgn-preview { color: #7db8e8 !important; }
+    html.dark .progress-name { color: var(--text) !important; }
+    html.dark .progress-bar-bg { background: #334155 !important; }
+
+    html.dark .search-bar input,
+    html.dark select,
+    html.dark input[type="text"],
+    html.dark textarea {
+      background: var(--input-bg) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+
+    html.dark .tabs { border-bottom-color: var(--border) !important; }
+    html.dark .tab { color: #b6d1c7 !important; }
+    html.dark .tab:hover { background: var(--surface-alt) !important; }
+    html.dark .tab.active { color: var(--text) !important; }
+    html.dark .card h3 { color: var(--text) !important; }
+    html.dark .card p { color: var(--text-muted) !important; }
+    html.dark .board-container { background: #202a35 !important; }
+    html.dark .line-count { color: var(--text-muted) !important; }
+    html.dark .diff-filter { background: #22303c !important; color: var(--text-muted) !important; }
+    html.dark .diff-filter.active { background: var(--accent) !important; color: #08120f !important; }
+    html.dark .mosse { color: #81c7b2 !important; }
+    html.dark .tree a { color: var(--text) !important; }
+    html.dark .alert-error { background: #311a1a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
+    html.dark .alert-success { background: #10261d !important; color: #9fe3bd !important; border-color: #1f5f46 !important; }
+    html.dark .import-page .card { background: var(--bg-card) !important; }
+    html.dark .or-divider { color: #64748b !important; }
+    html.dark .or-divider::before,
+    html.dark .or-divider::after { background: #334155 !important; }
+    html.dark .help code { background: #2b3645 !important; color: #dbe2ea !important; }
+
+    .page-wrapper {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .site-main {
+      flex: 1 0 auto;
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 14px;
+    }
+
+    .site-footer {
+      margin-top: 44px;
+      padding: 22px 20px 26px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .site-footer-inner {
+      width: 100%;
+      margin: 0;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .footer-logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 10px;
+      object-fit: cover;
+      flex: 0 0 auto;
+    }
+
+    .footer-divider {
+      width: 1px;
+      align-self: stretch;
+      min-height: 82px;
+      background: rgba(255,255,255,0.35);
+    }
+
+    .footer-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .footer-copy strong {
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 10px 12px;
+        gap: 8px;
+        min-height: auto;
+        align-items: center;
+      }
+
+      .nav-logo {
+        height: 46px;
+        border-radius: 6px;
+        margin-right: 0;
+      }
+
+      nav .brand {
+        font-size: 16px;
+        margin-right: auto;
+        min-width: 0;
+      }
+
+      nav .brand span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      #darkToggle {
+        margin-left: 0;
+        width: 40px;
+        height: 40px;
+      }
+
+      nav a.nav-link {
+        flex: 1 1 calc(33.333% - 6px);
+        justify-content: center;
+        min-width: 0;
+        padding: 9px 10px;
+        font-size: 13px;
+      }
+
+      nav a.nav-link span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .site-footer-inner {
+        gap: 14px;
+      }
+
+      .footer-logo {
+        width: 50px;
+        height: 50px;
+      }
+
+      .site-main {
+        padding: 0 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      nav .brand {
+        font-size: 15px;
+      }
+
+      nav a.nav-link {
+        gap: 6px;
+        padding: 8px 8px;
+      }
+
+      nav a.nav-link .ui-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      .site-main {
+        padding: 0 8px;
+      }
+
+      .site-footer {
+        padding: 20px 14px 24px;
+      }
+
+      .site-footer-inner {
+        align-items: stretch;
+      }
+
+      .footer-divider {
+        min-height: 72px;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1><a href="/">♟️ Chess Repertoire</a></h1>
-    <hr>
-  </header>
+  {% include "repertoire/includes/icon_sprite.html" %}
 
-  {% block content %}
-  {% endblock %}
+  <nav>
+    <img src="{% static 'repertoire/img/header_logo.png' %}" class="nav-logo" alt="Chess Repertoire Logo">
+    <a class="brand" href="{% url 'home' %}">
+      <span>Chess Repertoire</span>
+    </a>
+    <a class="nav-link" href="{% url 'ripasso' %}">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-home"></use></svg>
+      <span>Ripasso</span>
+    </a>
+    <a class="nav-link" href="{% url 'home' %}">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
+      <span>Aperture</span>
+    </a>
+    <a class="nav-link" href="{% url 'import_pgn' %}">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-upload"></use></svg>
+      <span>Importa PGN</span>
+    </a>
+    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
+  </nav>
+
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <img src="{% static 'repertoire/img/header_logo.png' %}" class="footer-logo" alt="Chess Repertoire Logo">
+      <div class="footer-divider" aria-hidden="true"></div>
+      <div class="footer-copy">
+        <strong>Chess Repertoire</strong>
+        <span>- Studio aperture</span>
+        <span>- Linee e varianti</span>
+        <span>- Allenamento progressivo</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      const btn = document.getElementById('darkToggle');
+      if (!btn) return;
+
+      const icon = dark =>
+        `<svg class="ui-icon" aria-hidden="true"><use href="${dark ? '#icon-sun' : '#icon-moon'}"></use></svg>`;
+
+      btn.innerHTML = icon(document.documentElement.classList.contains('dark'));
+      btn.addEventListener('click', function() {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('darkMode', isDark ? '1' : '0');
+        btn.innerHTML = icon(isDark);
+      });
+    })();
+  </script>
 </body>
 </html>

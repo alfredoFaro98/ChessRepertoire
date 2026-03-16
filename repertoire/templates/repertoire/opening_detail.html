@@ -12,35 +12,19 @@
   position: relative;
 }
 
-.toggle {
-  cursor: pointer;
-  user-select: none;
-  margin-right: 4px;
-  color: #555;
-  font-weight: bold;
-}
-
-.toggle.empty {
-  visibility: hidden;
-}
-
 .nested {
   display: none;
   margin-left: 20px;
 }
 
-.nested.show {
-  display: block;
-}
+.nested.show { display: block; }
 
 .tree a {
   text-decoration: none;
   color: #2c3e50;
 }
 
-.tree a:hover {
-  color: #27ae60;
-}
+.tree a:hover { color: #27ae60; }
 
 .mosse {
   font-family: monospace;
@@ -59,40 +43,99 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.25);
   transition: background 0.3s ease, transform 0.2s ease;
 }
-.badge-count.low    { background: #c62828; } /* rosso */
-.badge-count.medium { background: #f9a825; } /* giallo */
-.badge-count.high   { background: #43a047; } /* verde */
-.badge-count.top    { background: #7b1fa2; } /* viola */
-.badge-count:hover  { transform: scale(1.15); }
-
-
-
+.badge-count.low { background: #c62828; }
+.badge-count.medium { background: #f9a825; }
+.badge-count.high { background: #43a047; }
+.badge-count.top { background: #7b1fa2; }
+.badge-count:hover { transform: scale(1.15); }
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title .ui-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+.toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:12px;
+}
+.toolbar-actions {
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.download-link {
+  background: transparent;
+  color: #8fd4a3;
+  border: 1px solid rgba(143, 212, 163, 0.42);
+  padding:6px 12px;
+  border-radius:10px;
+  font-size:13px;
+  font-weight:600;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.download-link:hover {
+  color: #d7f7e1;
+  background: rgba(143, 212, 163, 0.08);
+  border-color: rgba(143, 212, 163, 0.7);
+  box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+  transform: translateY(-1px);
+}
 </style>
 
 <h2>{{ opening.nome }}</h2>
 <p>{{ opening.descrizione }}</p>
 
-<h3>📂 Linee e Varianti</h3>
-<div class="d-flex justify-content-end mb-3">
-  <a href="{% url 'download_opening_lines' opening.id %}" class="btn btn-success">
-    📥 Scarica linee in TXT
+<h3 class="section-title">
+  <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
+  <span>Linee e varianti</span>
+</h3>
+
+<div class="toolbar">
+  <div class="toolbar-actions">
+    <button class="diff-filter active" data-diff="tutti" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#2c3e50;color:white;">
+      Tutte
+    </button>
+    <button class="diff-filter" data-diff="facile" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#e0e0e0;color:#333;">
+      Facile
+    </button>
+    <button class="diff-filter" data-diff="media" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#e0e0e0;color:#333;">
+      Media
+    </button>
+    <button class="diff-filter" data-diff="difficile" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#e0e0e0;color:#333;">
+      Difficile
+    </button>
+  </div>
+  <a href="{% url 'download_opening_lines' opening.id %}" class="download-link">
+    <svg class="ui-icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+    <span>Scarica TXT</span>
   </a>
 </div>
 
-
-<ul class="tree">
+<ul class="tree" id="lineList">
   {% for line in all_lines %}
-  <li class="line-node" style="display:flex;align-items:center;gap:8px;">
+  <li class="line-node" data-diff="{{ line.difficolta }}" style="display:flex;align-items:center;gap:8px;">
     <a href="{% url 'line_detail' line.root.id line.numero %}" style="flex:1;text-decoration:none;color:inherit;">
       <span class="mosse">{{ line.pgn }}</span>
+      {% if line.difficolta %}
+        <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:700;margin-left:4px;background:{% if line.difficolta == 'facile' %}#43a047{% elif line.difficolta == 'difficile' %}#c62828{% else %}#f9a825{% endif %};color:white;">
+          {{ line.get_difficolta_display }}
+        </span>
+      {% endif %}
       {% with line.completamenti as c %}
-        <span class="badge-count
-          {% if c == 0 %}low
-          {% elif c < 7 %}medium
-          {% elif c < 15 %}high
-          {% else %}top
-          {% endif %}"
-          title="Completata {{ c }} volte">
+        <span class="badge-count {% if c == 0 %}low{% elif c < 7 %}medium{% elif c < 15 %}high{% else %}top{% endif %}" title="Completata {{ c }} volte">
           {{ c }}
         </span>
       {% endwith %}
@@ -103,16 +146,23 @@
   {% endfor %}
 </ul>
 
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const toggles = document.querySelectorAll(".toggle");
-  toggles.forEach(t => {
-    t.addEventListener("click", () => {
-      const nested = t.parentElement.querySelector(".nested");
-      if (!nested) return;
-      nested.classList.toggle("show");
-      t.textContent = nested.classList.contains("show") ? "▼" : "▶";
+  document.querySelectorAll('.diff-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diff-filter').forEach(b => {
+        b.style.background = '#e0e0e0';
+        b.style.color = '#333';
+        b.classList.remove('active');
+      });
+      btn.style.background = '#2c3e50';
+      btn.style.color = 'white';
+      btn.classList.add('active');
+
+      const diff = btn.dataset.diff;
+      document.querySelectorAll('#lineList .line-node').forEach(li => {
+        li.style.display = diff === 'tutti' || li.dataset.diff === diff ? 'flex' : 'none';
+      });
     });
   });
 });

@@ -4,7 +4,10 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ root.nome }} — Linea {{ line.numero }}</title>
+<!-- Anti-FOUC dark mode -->
+<script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -62,13 +65,25 @@
     flex-direction: column;
   }
 
-  .sidebar-header {
-    padding: 15px;
-    background: #2c3e50;
-    color: white;
-    font-weight: bold;
-    text-align: center;
-  }
+.sidebar-header {
+  padding: 15px;
+  background: #2c3e50;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+}
+.action-bar {
+  background: #f2f2f2;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.stats-shell {
+  border-top: 1px solid #ddd;
+}
 
   table.move-table {
     width: 100%;
@@ -129,31 +144,61 @@
   .controls button:hover {
     color: #2ecc71;
   }
-  .btn-nav {
-  text-decoration: none;
-  background: #4CAF50;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 5px;
-  font-size: 14px;
-  transition: background 0.2s;
-}
-
-.btn-nav:hover {
-  background: #43a047;
-}
+  .ui-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+  }
+  .controls button .ui-icon {
+    width: 26px;
+    height: 26px;
+  }
+  #darkToggle {
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px;
+    border-radius:8px;
+    color:white;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #darkToggle .ui-icon {
+    width: 26px;
+    height: 26px;
+  }
 .btn-nav {
   text-decoration: none;
-  background: #4CAF50;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 5px;
+  background: transparent;
+  color: #8fd4a3;
+  padding: 8px 12px;
+  border-radius: 10px;
   font-size: 14px;
-  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(143, 212, 163, 0.42);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .btn-nav:hover {
-  background: #43a047;
+  background: rgba(143, 212, 163, 0.08);
+  color: #d7f7e1;
+  border-color: rgba(143, 212, 163, 0.7);
+  box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+  transform: translateY(-1px);
+}
+.btn-nav.primary {
+  color: #8fc7ff;
+  border-color: rgba(143, 199, 255, 0.42);
+}
+.btn-nav.primary:hover {
+  background: rgba(143, 199, 255, 0.08);
+  color: #dcedff;
+  border-color: rgba(143, 199, 255, 0.72);
+  box-shadow: 0 10px 24px rgba(80,145,255,0.12), 0 0 18px rgba(80,145,255,0.12);
 }
 
 .board-wrapper {
@@ -212,6 +257,63 @@
   z-index: 5; /* 🔥 Serve per stare sopra la scacchiera */
 }
 
+/* ── Eval bar (Stockfish) ── */
+#evalWrapper {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+#evalBar {
+  width: 14px; height: 480px;
+  background: #1a1a1a;
+  border-radius: 4px; overflow: hidden; position: relative;
+}
+#evalFill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #f0f0f0; height: 50%;
+  transition: height .45s ease;
+}
+#evalScore {
+  font-size: 11px; font-weight: 700; color: #555;
+  text-align: center; min-width: 28px;
+  white-space: nowrap;
+}
+#evalToggle {
+  font-size: 11px; font-weight: 700; padding: 3px 6px;
+  border: 1px solid #bbb; border-radius: 4px;
+  cursor: pointer; background: #f5f5f5; color: #555;
+  transition: all .2s; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-width: 52px;
+}
+#evalToggle:hover { background: #e0e0e0; }
+#evalToggle.on { background: #1976d2; color: white; border-color: #1976d2; }
+#evalToggle.error { background: #4b1d1d; color: #fecaca; border-color: #7f1d1d; }
+
+/* ── Dark mode ── */
+html.dark body           { background: #121212; color: #e0e0e0; transition: background .25s, color .25s; }
+html.dark .sidebar       { background: #1e1e2e; border-left-color: #444; }
+html.dark .sidebar-header { background: #0d1117; }
+html.dark .board-container { background: #2a2a3a; }
+html.dark table.move-table tr:nth-child(even) { background: #2a2a3a; }
+html.dark td.move        { color: #90caf9; }
+html.dark td.move:hover  { background: #1a2a1a; }
+html.dark td.move.active { background: #1565c0; color: white; }
+html.dark td.number      { color: #aaa; }
+html.dark .move-list-container { background: #1e1e2e; }
+html.dark .controls      { background: #1a1a2e; border-top-color: #444; }
+html.dark .controls button { color: #ccc; }
+html.dark .controls button:hover { color: #90caf9; }
+html.dark #statsPanel    { background: #1a1a2e; }
+html.dark #statsToggle   { background: #2a2a3a; color: #ccc; }
+html.dark .btn-nav       { background: transparent; }
+html.dark #evalScore     { color: #ccc; }
+html.dark #evalToggle    { background: #2a2a3a; color: #ccc; border-color: #555; }
+html.dark #evalToggle.on { background: #1976d2; color: white; border-color: #1976d2; }
+html.dark .action-bar    { background: #202833; border-bottom-color: #334155; }
+html.dark .stats-shell   { border-top-color: #334155; }
+html.dark .rank-labels,
+html.dark .file-labels { color: #f8fafc; }
+
 /* ===== HEADER FISSO IN ALTO ===== */
 .header-bar {
   width: 100%;
@@ -224,6 +326,7 @@
   left: 0;
   z-index: 100;
 }
+html.dark .header-bar { background: #0d1117; }
 
 .header-content {
   display: flex;
@@ -249,16 +352,7 @@
 }
 
 .header-actions .btn-nav {
-  background: #43a047;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 5px;
   font-size: 14px;
-  transition: background 0.2s;
-}
-
-.header-actions .btn-nav:hover {
-  background: #388e3c;
 }
 
 /* Spazio per non far coprire la pagina dal header */
@@ -270,6 +364,7 @@
 </style>
 </head>
 <body>
+{% include "repertoire/includes/icon_sprite.html" %}
   <!-- 🔝 HEADER INTERATTIVO -->
 <header class="header-bar">
   <div class="header-content">
@@ -280,6 +375,7 @@
         › <span>Linea {{ line.numero }}</span>
       {% endif %}
     </div>
+    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
   </div>
 </header>
 
@@ -287,6 +383,14 @@
 <div class="container">
 
   <div class="board-container">
+  <div style="display:flex;align-items:flex-start;gap:8px;">
+    <!-- ── Eval bar Stockfish ── -->
+    <div id="evalWrapper">
+      <button id="evalToggle" title="Attiva/disattiva analisi Stockfish"><svg class="ui-icon" aria-hidden="true"><use href="#icon-search"></use></svg></button>
+      <div id="evalBar"><div id="evalFill"></div></div>
+      <div id="evalScore">—</div>
+    </div>
+    <!-- ── Scacchiera ── -->
   <div class="board-wrapper">
     <canvas id="arrowLayer" width="480" height="480"></canvas>
     <div class="board" id="board"></div>
@@ -304,8 +408,9 @@
       <div>{{ i }}</div>
       {% endfor %}
     </div>
-  </div>
-</div>
+  </div><!-- /board-wrapper -->
+  </div><!-- /flex wrapper -->
+</div><!-- /board-container -->
 
 
   <div class="sidebar">
@@ -313,28 +418,37 @@
     <div class="sidebar-header">
   {{ root.nome }} — Linea {{ line_position }} di {{ total_lines }}
   <div style="font-size:14px; font-weight:normal; color:#a5d6a7; margin-top:4px;">
-    🧩 Completata {{ line.completamenti }} volte
+    Completata {{ line.completamenti }} volte
+    {% if line.difficolta %}
+      &nbsp;·&nbsp;
+      <span style="
+        display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;
+        background:{% if line.difficolta == 'facile' %}#43a047{% elif line.difficolta == 'difficile' %}#c62828{% else %}#f9a825{% endif %};
+        color:white;">
+        {{ line.get_difficolta_display }}
+      </span>
+    {% endif %}
   </div>
 </div>
 
-<div style="background:#f2f2f2; padding:8px 12px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
-  <a href="{% url 'opening_detail' root.id %}" class="btn-nav">⬅ Torna all'apertura</a>
-  <a href="{% url 'line_training' line.root.id line.numero %}" class="btn-nav" style="background:#1976d2;">
-  🧠 Train
+<div class="action-bar">
+  <a href="{% url 'opening_detail' root.id %}" class="btn-nav"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg> Torna all'apertura</a>
+  <a href="{% url 'line_training' line.root.id line.numero %}" class="btn-nav primary">
+  <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg> Train
 </a>
 
 </div>
 
 {% if prev_line or next_line %}
-  <div style="display:flex; justify-content:space-between; align-items:center; background:#f2f2f2; padding:8px 12px; border-bottom:1px solid #ddd;">
+  <div class="action-bar">
     {% if prev_line %}
-  <a href="{% url 'line_detail' prev_line.root.id prev_line.numero %}" class="btn-nav">⬅ Linea {{ prev_line.numero }}</a>
+  <a href="{% url 'line_detail' prev_line.root.id prev_line.numero %}" class="btn-nav"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg> Linea {{ prev_line.numero }}</a>
 {% else %}
   <span></span>
 {% endif %}
 
 {% if next_line %}
-  <a href="{% url 'line_detail' next_line.root.id next_line.numero %}" class="btn-nav">Linea {{ next_line.numero }} ➡</a>
+  <a href="{% url 'line_detail' next_line.root.id next_line.numero %}" class="btn-nav">Linea {{ next_line.numero }} <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></a>
 {% else %}
   <span></span>
 {% endif %}
@@ -348,11 +462,43 @@
     </div>
 
     <div class="controls">
-  <button id="firstMove">⏮</button>
-  <button id="prevMove">⬅</button>
-  <button id="nextMove">➡</button>
-  <button id="lastMove">⏭</button>
-  <button id="flipBoard" title="Ruota la scacchiera">🔄</button>
+  <button id="firstMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-skip-start"></use></svg></button>
+  <button id="prevMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></button>
+  <button id="nextMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></button>
+  <button id="lastMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-skip-end"></use></svg></button>
+  <button id="flipBoard" title="Ruota la scacchiera"><svg class="ui-icon" aria-hidden="true"><use href="#icon-rotate"></use></svg></button>
+</div>
+
+<!-- ── Pannello statistiche ── -->
+<div class="stats-shell">
+  <button id="statsToggle" style="width:100%;background:#f0f0f0;border:none;padding:8px 12px;text-align:left;cursor:pointer;font-size:13px;font-weight:600;color:#555;">
+    <svg class="ui-icon" aria-hidden="true"><use href="#icon-chart"></use></svg> Statistiche &nbsp;<span id="statsArrow"><svg class="ui-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg></span>
+  </button>
+  <div id="statsPanel" style="display:none;padding:10px 12px;background:#fafafa;font-size:13px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="flex:1;background:#fff;border-radius:8px;padding:8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+        <div style="font-size:20px;font-weight:800;color:#2c3e50;">{{ sessions_count }}</div>
+        <div style="color:#888;font-size:11px;">Sessioni</div>
+      </div>
+      {% if avg_quality is not None %}
+      <div style="flex:1;background:#fff;border-radius:8px;padding:8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+        <div style="font-size:20px;font-weight:800;color:#2c3e50;">
+          {{ avg_quality }}
+        </div>
+        <div style="color:#888;font-size:11px;">Qualita media</div>
+      </div>
+      {% endif %}
+      {% if avg_time is not None %}
+      <div style="flex:1;background:#fff;border-radius:8px;padding:8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+        <div style="font-size:20px;font-weight:800;color:#2c3e50;">{{ avg_time }}s</div>
+        <div style="color:#888;font-size:11px;">Tempo medio</div>
+      </div>
+      {% endif %}
+    </div>
+    <!-- Grafico ultimi 14 giorni -->
+    <div style="font-size:11px;color:#aaa;margin-bottom:4px;">Sessioni ultimi 14 giorni</div>
+    <canvas id="statsChart" height="80"></canvas>
+  </div>
 </div>
 
   </div>
@@ -384,20 +530,20 @@ for (const id in cells) {
 
 const pieceImgs = {
   w: {
-    P: "https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg",
-    N: "https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg",
-    B: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg",
-    R: "https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg",
-    Q: "https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg",
-    K: "https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg",
+    P: "{% static 'vendor/chessboardjs/img/wP.png' %}",
+    N: "{% static 'vendor/chessboardjs/img/wN.png' %}",
+    B: "{% static 'vendor/chessboardjs/img/wB.png' %}",
+    R: "{% static 'vendor/chessboardjs/img/wR.png' %}",
+    Q: "{% static 'vendor/chessboardjs/img/wQ.png' %}",
+    K: "{% static 'vendor/chessboardjs/img/wK.png' %}",
   },
   b: {
-    P: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg",
-    N: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg",
-    B: "https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg",
-    R: "https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg",
-    Q: "https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg",
-    K: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg",
+    P: "{% static 'vendor/chessboardjs/img/bP.png' %}",
+    N: "{% static 'vendor/chessboardjs/img/bN.png' %}",
+    B: "{% static 'vendor/chessboardjs/img/bB.png' %}",
+    R: "{% static 'vendor/chessboardjs/img/bR.png' %}",
+    Q: "{% static 'vendor/chessboardjs/img/bQ.png' %}",
+    K: "{% static 'vendor/chessboardjs/img/bK.png' %}",
   }
 };
 
@@ -494,7 +640,7 @@ for(let i=0;i<moves.length;i+=2){
 }
 
 document.querySelectorAll('.move').forEach(td=>{
-  td.addEventListener('click',()=>jumpTo(parseInt(td.dataset.index)+1));
+  td.addEventListener('click',()=>{ jumpTo(parseInt(td.dataset.index)+1); scheduleAnalysis(); });
 });
 function highlightMoves(){document.querySelectorAll('.move').forEach((m,i)=>m.classList.toggle('active',i===idx-1));}
 function clearCellHighlights(){for(const sq in cells)cells[sq].classList.remove('highlight-from','highlight-to');}
@@ -606,29 +752,29 @@ function applySAN(move, side){
 }
 
 /* === CONTROLLI === */
-document.getElementById('nextMove').onclick=nextMove;
-document.getElementById('prevMove').onclick=prevMove;
-document.getElementById('firstMove').onclick=()=>jumpTo(0);
-document.getElementById('lastMove').onclick=()=>jumpTo(moves.length);
+document.getElementById('nextMove').onclick=()=>{nextMove();scheduleAnalysis();};
+document.getElementById('prevMove').onclick=()=>{prevMove();scheduleAnalysis();};
+document.getElementById('firstMove').onclick=()=>{jumpTo(0);scheduleAnalysis();};
+document.getElementById('lastMove').onclick=()=>{jumpTo(moves.length);scheduleAnalysis();};
 
 /* === NAVIGAZIONE CON TASTIERA === */
 document.addEventListener('keydown', function(e) {
   switch (e.key) {
-    case 'ArrowRight': // ➡️ avanti
+    case 'ArrowRight':
       e.preventDefault();
-      nextMove();
+      nextMove(); scheduleAnalysis();
       break;
-    case 'ArrowLeft': // ⬅️ indietro
+    case 'ArrowLeft':
       e.preventDefault();
-      prevMove();
+      prevMove(); scheduleAnalysis();
       break;
-    case 'Home': // ⏮ inizio
+    case 'Home':
       e.preventDefault();
-      jumpTo(0);
+      jumpTo(0); scheduleAnalysis();
       break;
-    case 'End': // ⏭ fine
+    case 'End':
       e.preventDefault();
-      jumpTo(moves.length);
+      jumpTo(moves.length); scheduleAnalysis();
       break;
   }
 });
@@ -794,11 +940,204 @@ document.addEventListener('keydown', (e) => {
     draw();
   }
 });
+</script>
 
+<!-- Chart.js + Pannello statistiche -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const toggle  = document.getElementById('statsToggle');
+  const panel   = document.getElementById('statsPanel');
+  const arrow   = document.getElementById('statsArrow');
+  let chartInit = false;
 
+  toggle.addEventListener('click', function() {
+    var open = panel.style.display === 'block';
+    panel.style.display = open ? 'none' : 'block';
+    arrow.innerHTML = open
+      ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>'
+      : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-chevron-up"></use></svg>';
 
+    if (!open && !chartInit) {
+      chartInit = true;
+      var labels = {{ chart_labels|safe }};
+      var data   = {{ chart_data|safe }};
+      new Chart(document.getElementById('statsChart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: 'rgba(25,118,210,0.7)',
+            borderRadius: 4,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { font: { size: 10 } } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+  });
+})();
+</script>
 
+<!-- ── Chess.js + Stockfish Eval Bar ── -->
+<script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
+<script>
+(function(){
+  /* ── FEN helper: riproduce idx mosse su chess.js ── */
+  function getFenAtIdx() {
+    var g = new Chess();
+    for (var i = 0; i < idx; i++) {
+      try { g.move(moves[i]); } catch(e) { break; }
+    }
+    return g.fen();
+  }
 
+  /* ── Converti centipawn → percentuale barra ── */
+  function cpToPct(cp) {
+    var b = Math.max(-1000, Math.min(1000, cp));
+    return Math.round(50 + 50 * (b / (Math.abs(b) + 200)));
+  }
+
+  /* ── Aggiorna barra e testo ── */
+  function updateEval(cp, mate) {
+    var fill  = document.getElementById('evalFill');
+    var score = document.getElementById('evalScore');
+    var pct, text;
+    if (mate !== null) {
+      pct  = mate > 0 ? 97 : 3;
+      text = mate > 0 ? 'M' + mate : '-M' + Math.abs(mate);
+    } else {
+      pct  = cpToPct(cp);
+      var p = (cp / 100).toFixed(1);
+      text = cp >= 0 ? '+' + p : p;
+    }
+    fill.style.height = pct + '%';
+    score.textContent = text;
+  }
+
+  /* ── Stockfish worker ── */
+  var sfWorker  = null;
+  var sfReady   = false;
+  var sfEnabled = false;
+  var sfTimer   = null;
+  var sfLoadFailed = false;
+
+  function scheduleAnalysis() {
+    clearTimeout(sfTimer);
+    sfTimer = setTimeout(doAnalysis, 120);
+  }
+  window.scheduleAnalysis = scheduleAnalysis;  // esporta per i controlli
+
+  function doAnalysis() {
+    if (!sfWorker || !sfReady || !sfEnabled) return;
+    sfWorker.postMessage('stop');
+    sfWorker.postMessage('position fen ' + getFenAtIdx());
+    sfWorker.postMessage('go depth 15');
+  }
+
+  function handleMsg(e) {
+    var msg = e.data;
+    if (msg === 'readyok') { sfReady = true; doAnalysis(); return; }
+    if (msg.indexOf('score') === -1) return;
+    var cpM = msg.match(/score cp (-?\d+)/);
+    var mtM = msg.match(/score mate (-?\d+)/);
+    if (cpM)      updateEval(parseInt(cpM[1]), null);
+    else if (mtM) updateEval(null, parseInt(mtM[1]));
+  }
+
+  async function loadStockfish() {
+    var workerUrls = [
+      'https://cdn.jsdelivr.net/npm/stockfish@16.0.0/src/stockfish-nnue-16-single.js',
+      'https://cdn.jsdelivr.net/npm/stockfish@10.0.2/stockfish.js'
+    ];
+
+    for (var i = 0; i < workerUrls.length; i++) {
+      try {
+        sfWorker = new Worker(workerUrls[i]);
+        sfWorker.onmessage = handleMsg;
+        sfWorker.postMessage('uci');
+        sfWorker.postMessage('setoption name Threads value 1');
+        sfWorker.postMessage('setoption name Hash value 16');
+        sfWorker.postMessage('isready');
+        sfLoadFailed = false;
+        return true;
+      } catch (err) {
+        console.error('Stockfish load error:', err);
+        sfWorker = null;
+      }
+    }
+
+    sfLoadFailed = true;
+    return false;
+  }
+
+  /* ── Toggle button ── */
+  var btn = document.getElementById('evalToggle');
+  function setEvalButtonState(state) {
+    btn.classList.remove('on', 'error');
+    if (state === 'on') {
+      btn.classList.add('on');
+      btn.innerHTML = '<svg class="ui-icon" aria-hidden="true"><use href="#icon-search"></use></svg><span>ON</span>';
+    } else if (state === 'error') {
+      btn.classList.add('error');
+      btn.innerHTML = '<svg class="ui-icon" aria-hidden="true"><use href="#icon-alert"></use></svg><span>ERR</span>';
+    } else {
+      btn.innerHTML = '<svg class="ui-icon" aria-hidden="true"><use href="#icon-search"></use></svg>';
+    }
+  }
+
+  setEvalButtonState('off');
+  btn.addEventListener('click', async function() {
+    sfEnabled = !sfEnabled;
+
+    if (sfEnabled) {
+      setEvalButtonState('on');
+      document.getElementById('evalFill').style.height = '50%';
+      document.getElementById('evalScore').textContent = '…';
+      if (!sfWorker) {
+        var loaded = await loadStockfish();
+        if (!loaded) {
+          sfEnabled = false;
+          setEvalButtonState('error');
+          document.getElementById('evalScore').textContent = 'ERR';
+          return;
+        }
+      } else {
+        doAnalysis();
+      }
+    } else {
+      if (sfWorker) sfWorker.postMessage('stop');
+      document.getElementById('evalFill').style.height = '50%';
+      document.getElementById('evalScore').textContent = '—';
+      setEvalButtonState('off');
+    }
+  });
+})();
+</script>
+
+<!-- ── Dark mode toggle ── -->
+<script>
+(function(){
+  var btn = document.getElementById('darkToggle');
+  if (!btn) return;
+  btn.innerHTML = document.documentElement.classList.contains('dark')
+    ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+    : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  btn.addEventListener('click', function(){
+    var isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', isDark ? '1' : '0');
+    btn.innerHTML = isDark
+      ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+      : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  });
+})();
 </script>
 
 </body>

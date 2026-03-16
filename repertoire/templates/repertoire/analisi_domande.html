@@ -1,7 +1,6 @@
 {% extends "repertoire/base.html" %}
-{% load static %}
 
-{% block title %}Domande di Analisi — Chess Trainer{% endblock %}
+{% block title %}Domande di Analisi - Chess Trainer{% endblock %}
 
 {% block content %}
 <style>
@@ -52,13 +51,8 @@
     margin-left: 15px;
   }
 
-  .tactical {
-    border-left-color: #e74c3c;
-  }
-
-  .gm {
-    border-left-color: #3498db;
-  }
+  .tactical { border-left-color: #e74c3c; }
+  .gm { border-left-color: #3498db; }
 
   .note {
     margin-top: 20px;
@@ -70,89 +64,81 @@
 </style>
 
 <div class="container">
+  <div class="section" style="border-left-color:#12f330;">
+    <h2>Domande che devo farmi</h2>
+    <ul style="margin-left:20px; color:#333; line-height:1.6;">
+      <li>Puo farmi scacco?</li>
+      <li>Puo farmi una forchetta se muovo cosi?</li>
+      <li>Puo farmi un sovraccarico se muovo cosi?</li>
+      <li>Esiste un sacrificio che puo portarmi in vantaggio?</li>
+      <li>E uno scambio che mi porta in vantaggio? Che posizione ne deriva successivamente?</li>
+    </ul>
+  </div>
 
-<div class="section" style="border-left-color:#12f330;">
-  <h2>Domande che devo farmi</h2>
+  <div class="section" style="border-left-color:#f39c12;">
+    <h2>Errori che faccio piu spesso</h2>
+    <ul style="margin-left:20px; color:#333; line-height:1.6;">
+      <li>Non controllo le <b>forchette</b> quando muovo</li>
+      <li>Non ho <b>attivato</b> il pezzo giusto</li>
+      <li>Non do scacco quando posso</li>
+      <li>Non ho sfruttato un tatticismo</li>
+      <li>Lascio i pezzi in presa</li>
+      <li>Non valuto il tempo</li>
+      <li>Non sfrutto il vantaggio che ho</li>
+      <li>Non attacco o difendo con il pezzo giusto</li>
+      <li>Non ho visto un sovraccarico</li>
+      <li>Gioco mosse impulsive senza chiedermi quale e il piano dell'avversario.</li>
+    </ul>
+  </div>
 
-  <ul style="margin-left:20px; color:#333; line-height:1.6;">
-    <li>Può farmi scacco?</li>
-    <li>Può farmi una forchetta se muovo cosi?</li>
-    <li>Può farmi un sovraccarico se muovo cosi?</li>
-    <li>Esiste un sacrificio che può portarmi in vantaggio?</li>
-    <li>E' uno scambio che mi porta in vantaggio? Che posizione ne deriva successivamente?</li>
-  </ul>
-</div>
+  <h1>Domande di Analisi Scacchistica</h1>
+  <p style="text-align:center;color:#555;">Checklist mentale per analizzare qualunque posizione: strategia, tattica e gestione del tempo.</p>
 
-<div class="section" style="border-left-color:#f39c12;">
-  <h2>⚠️ Errori che faccio più spesso</h2>
-
-  <ul style="margin-left:20px; color:#333; line-height:1.6;">
-    <li>Non controllo le <b>forchette</b> quando muovo</li>
-    <li>Non ho <b>attivato</b> il pezzo giusto</li>
-    <li>Non do scacco quando posso</li>
-    <li>Non ho sfruttato un tatticismo</li>
-    <li>Lascio i pezzi in presa</li>
-    <li>Non valuto il tempo</li>
-    <li>Non sfrutto il vantaggio che ho</li>
-    <li>Non attacco/difendo con il pezzo giusto</li>
-    <li>Non ho visto un sovraccarico</li>
-    <li>Gioco mosse impulsive senza chiedermi “<i>qual è il piano dell’avversario?</i>”.</li>
-  </ul>
-</div>
-
-
-  <h1>🧩 Domande di Analisi Scacchistica</h1>
-  <p style="text-align:center;color:#555;">Checklist mentale per analizzare qualunque posizione — strategia, tattica e gestione del tempo.</p>
-
-  <!-- Sezione Kramnik -->
   <div class="section">
-    <h2>♟️ Le 4 Domande di Kramnik (Strategia)</h2>
+    <h2>Le 4 Domande di Kramnik</h2>
 
-    <div class="question">1️⃣ Ho una combinazione diretta per ottenere qualcosa?</div>
-    <div class="explain">→ Controlla se esistono tattiche immediate (matto, guadagno di materiale, scoperta).</div>
+    <div class="question">1. Ho una combinazione diretta per ottenere qualcosa?</div>
+    <div class="explain">Controlla se esistono tattiche immediate come matto, guadagno di materiale o scoperta.</div>
 
-    <div class="question">2️⃣ Il mio avversario ha una combinazione con cui minaccia qualcosa?</div>
-    <div class="explain">→ Scansiona le minacce avversarie prima di tutto: tattiche e pezzi in presa.</div>
+    <div class="question">2. Il mio avversario ha una combinazione con cui minaccia qualcosa?</div>
+    <div class="explain">Scansiona le minacce avversarie prima di tutto: tattiche e pezzi in presa.</div>
 
-    <div class="question">3️⃣ Qual è il piano del mio avversario?</div>
-    <div class="explain">→ Pensa in modo profilattico: cosa vuole fare, e posso impedirlo?</div>
+    <div class="question">3. Qual e il piano del mio avversario?</div>
+    <div class="explain">Pensa in modo profilattico: cosa vuole fare e come puoi impedirlo.</div>
 
-    <div class="question">4️⃣ Qual è il mio piano / come miglioro la mia posizione?</div>
-    <div class="explain">→ Solo dopo aver neutralizzato le minacce, costruisci il tuo piano (pezzi attivi, case forti, spinta di pedone, struttura).</div>
+    <div class="question">4. Qual e il mio piano o come miglioro la mia posizione?</div>
+    <div class="explain">Solo dopo aver neutralizzato le minacce, costruisci il tuo piano.</div>
   </div>
 
-  <!-- Sezione SCACK -->
   <div class="section tactical">
-    <h2>⚔️ L’Algoritmo SCACK (Tattica)</h2>
+    <h2>L'algoritmo SCACK</h2>
 
-    <div class="question">S — Scacchi</div>
-    <div class="explain">→ Posso dare scacco? Anche quelli “stupidi” vanno considerati e poi scartati.</div>
+    <div class="question">S - Scacchi</div>
+    <div class="explain">Posso dare scacco? Anche quelli deboli vanno considerati e poi scartati.</div>
 
-    <div class="question">C — Catture</div>
-    <div class="explain">→ Posso catturare qualcosa? Anche le catture sbagliate vanno visualizzate, poi valutate.</div>
+    <div class="question">C - Catture</div>
+    <div class="explain">Posso catturare qualcosa? Anche le catture sbagliate vanno visualizzate, poi valutate.</div>
 
-    <div class="question">A — Attacchi diretti</div>
-    <div class="explain">→ Posso creare una minaccia o doppia minaccia? Attacco re, pezzi non difesi o punti deboli.</div>
+    <div class="question">A - Attacchi diretti</div>
+    <div class="explain">Posso creare una minaccia o doppia minaccia?</div>
 
-    <div class="question">C — Contatti pedonali</div>
-    <div class="explain">→ Posso spingere un pedone per aprire linee, creare tensione o rompere il centro?</div>
+    <div class="question">C - Contatti pedonali</div>
+    <div class="explain">Posso spingere un pedone per aprire linee, creare tensione o rompere il centro?</div>
   </div>
 
-  <!-- Sezione GM -->
   <div class="section gm">
-    <h2>🧠 Come pensa un Grande Maestro (Gestione del tempo)</h2>
+    <h2>Come pensa un Grande Maestro</h2>
 
-    <div class="question">⚡ Blitz (5-10 sec)</div>
-    <div class="explain">→ 1. C’è una minaccia? 2. Posso catturare qualcosa? 3. Gioca una mossa logica e sicura.</div>
+    <div class="question">Blitz (5-10 secondi)</div>
+    <div class="explain">1. C'e una minaccia? 2. Posso catturare qualcosa? 3. Gioca una mossa logica e sicura.</div>
 
-    <div class="question">⏱ Rapid (1 min)</div>
-    <div class="explain">→ Stesso processo, ma verifica il piano dell’avversario e le conseguenze della tua mossa.</div>
+    <div class="question">Rapid (1 minuto)</div>
+    <div class="explain">Stesso processo, ma verifica il piano dell'avversario e le conseguenze della tua mossa.</div>
 
-    <div class="question">🕓 Classica (fino a 10 min per mossa)</div>
-    <div class="explain">→ Espandi ogni step: valuta piani posizionali, confronta linee, scarta mosse peggiori, e solo poi calcola a fondo.</div>
+    <div class="question">Classica (fino a 10 minuti per mossa)</div>
+    <div class="explain">Espandi ogni step: valuta piani posizionali, confronta linee, scarta mosse peggiori e poi calcola a fondo.</div>
   </div>
 
-  <p class="note">📖 Ricorda: il processo non cambia — solo la profondità.  
-  Pensa come un GM: ordine, chiarezza e calma.</p>
+  <p class="note">Il processo non cambia, cambia solo la profondita. Pensa con ordine, chiarezza e calma.</p>
 </div>
 {% endblock %}

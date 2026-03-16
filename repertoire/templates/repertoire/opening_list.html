@@ -7,15 +7,80 @@
   padding: 20px;
 }
 .search-bar {
+  width: 100%;
   margin-bottom: 20px;
-  text-align: center;
+  position: relative;
+  transition: transform 0.2s ease;
 }
-.search-bar input {
-  padding: 10px 15px;
+.search-bar:hover {
+  transform: scale(1.012);
+}
+.search-input {
+  width: 100%;
+  padding: 22px 48px 22px 15px;
   border: 2px solid #4CAF50;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 16px;
-  width: 50%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.search-bar:hover .search-input {
+  border-color: #5fcf80;
+  box-shadow: 0 0 0 6px rgba(95, 207, 128, 0.18), 0 0 24px rgba(95, 207, 128, 0.24);
+  background: rgba(255, 255, 255, 0.98);
+}
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.14);
+}
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-card, #fff);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+.search-suggestions[hidden] {
+  display: none;
+}
+.search-icon {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  color: #497a61;
+  pointer-events: none;
+}
+.search-icon .ui-icon {
+  width: 22px;
+  height: 22px;
+}
+.search-suggestion {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.search-suggestion:hover,
+.search-suggestion.active {
+  background: rgba(76, 175, 80, 0.12);
+}
+.suggestion-type {
+  font-size: 13px;
+  color: #6d7d6f;
+  white-space: nowrap;
 }
 .tabs {
   display: flex;
@@ -38,6 +103,59 @@
 .tab:hover {
   background-color: #e9f5ec;
 }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.toolbar-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6d7d6f;
+}
+.toolbar-btn,
+.toolbar-select {
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(143, 212, 163, 0.34);
+  background: rgba(143, 212, 163, 0.05);
+  color: #8fd4a3;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+.toolbar-btn {
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.toolbar-select {
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.toolbar-btn:hover,
+.toolbar-select:hover {
+  background: rgba(143, 212, 163, 0.08);
+  color: #d7f7e1;
+  border-color: rgba(143, 212, 163, 0.7);
+  box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+}
+.toolbar-btn.active {
+  background: rgba(143, 212, 163, 0.12);
+  color: #d7f7e1;
+  border-color: rgba(143, 212, 163, 0.75);
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -48,11 +166,86 @@
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   text-align: center;
   padding-bottom: 10px;
+  border: 1px solid transparent;
 }
-.card:hover { transform: scale(1.02); }
+.card:hover {
+  transform: scale(1.028);
+  box-shadow: 0 16px 34px rgba(47, 111, 94, 0.24), 0 0 32px rgba(95, 207, 128, 0.2);
+  border-color: rgba(95, 207, 128, 0.42);
+}
+.grid.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.grid.rows .card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: stretch;
+  text-align: left;
+  padding-bottom: 0;
+}
+.grid.rows .board-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.row-content {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.row-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.row-title {
+  margin: 0;
+  font-size: 20px;
+  color: #2c3e50;
+}
+.row-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #d7f7e1;
+  background: rgba(143, 212, 163, 0.12);
+  border: 1px solid rgba(143, 212, 163, 0.34);
+}
+.row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(95, 207, 128, 0.08);
+  border: 1px solid rgba(95, 207, 128, 0.18);
+  color: #6e7d73;
+  font-size: 12px;
+  font-weight: 700;
+}
+.row-moves {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.5;
+}
 .card h3 {
   margin: 10px 0 5px 0;
   color: #2c3e50;
@@ -66,61 +259,128 @@
   background: #dfe3e6;
   padding: 6px;
 }
-.icon {
-  font-size: 18px;
-  margin-left: 5px;
-}
 .line-count {
   color: #888;
   font-size: 13px;
   margin-top: -4px;
 }
+@media (max-width: 640px) {
+  .page {
+    padding: 16px 12px;
+  }
+  .tab {
+    padding: 10px 14px;
+  }
+  .search-suggestion {
+    padding: 11px 12px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .grid.rows .card {
+    grid-template-columns: 1fr;
+  }
+  .row-content {
+    padding: 14px 14px 16px;
+  }
+  .row-title {
+    font-size: 17px;
+  }
+  .card h3 {
+    font-size: 15px;
+    margin: 8px 8px 4px;
+  }
+  .card p {
+    font-size: 12px;
+    margin: 0 8px 8px;
+  }
+  .line-count {
+    font-size: 12px;
+    margin-top: 0;
+  }
+  .board-container {
+    padding: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .grid {
+    gap: 10px;
+  }
+  .card h3 {
+    font-size: 14px;
+  }
+}
 </style>
 
 <div class="page">
-  <div style="text-align:center; margin-top:30px;">
-  <a href="{% url 'analisi_domande' %}" class="btn btn-success btn-lg">
-    🧩 Vai alle Domande di Analisi
-  </a>
-</div>
-
-  <h2>📘 Scegli un’apertura</h2>
-
   <div class="search-bar">
     <form method="get" id="searchForm">
-      <input type="text" name="q" placeholder="Cerca apertura..."
-             list="aperture_suggestions" value="{{ query }}">
-      <datalist id="aperture_suggestions">
-        {% for item in all_openings %}
-          <option value="{{ item.nome }}">
-        {% endfor %}
-      </datalist>
+      <input
+        type="text"
+        name="q"
+        id="searchInput"
+        class="search-input"
+        placeholder="Cerca apertura..."
+        value="{{ query }}"
+        autocomplete="off"
+        aria-autocomplete="list"
+        aria-controls="searchSuggestions"
+        aria-expanded="false">
+      <span class="search-icon" aria-hidden="true">
+        <svg class="ui-icon"><use href="#icon-search"></use></svg>
+      </span>
+      <div id="searchSuggestions" class="search-suggestions" role="listbox" hidden></div>
       <input type="hidden" name="filtro" id="hiddenFilter" value="{{ filtro }}">
+      <input type="hidden" name="view" id="viewModeInput" value="{{ view_mode }}">
     </form>
   </div>
 
   <div class="tabs">
     <div class="tab {% if filtro == 'tutti' %}active{% endif %}" data-filter="tutti">Tutte</div>
-    <div class="tab {% if filtro == 'attacchi' %}active{% endif %}" data-filter="attacchi">⚔️ Attacchi</div>
-    <div class="tab {% if filtro == 'difese' %}active{% endif %}" data-filter="difese">♟️ Difese</div>
+    <div class="tab {% if filtro == 'attacchi' %}active{% endif %}" data-filter="attacchi">Attacchi</div>
+    <div class="tab {% if filtro == 'difese' %}active{% endif %}" data-filter="difese">Difese</div>
   </div>
 
-  <div class="grid">
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">Vista</span>
+      <button type="button" class="toolbar-btn {% if view_mode == 'card' %}active{% endif %}" data-view="card">Card</button>
+      <button type="button" class="toolbar-btn {% if view_mode == 'row' %}active{% endif %}" data-view="row">Row</button>
+    </div>
+    <div class="toolbar-group">
+      <label class="toolbar-label" for="sortMode">Ordina per</label>
+      <select id="sortMode" name="sort" class="toolbar-select" form="searchForm">
+        <option value="name" {% if sort_mode == 'name' %}selected{% endif %}>Nome</option>
+        <option value="lines" {% if sort_mode == 'lines' %}selected{% endif %}>Numero linee</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid {% if view_mode == 'row' %}rows{% endif %}">
     {% for item in openings %}
       <a href="{% url 'opening_detail' item.obj.id %}" class="card">
         <div class="board-container">
           {{ item.svg|safe }}
         </div>
-        <h3>
-          {{ item.obj.nome }}
-          {% if item.obj.difesa %}
-            <span class="icon" title="Difesa">♟️</span>
-          {% else %}
-            <span class="icon" title="Attacco">⚔️</span>
-          {% endif %}
-        </h3>
-        <p>{{ item.obj.moves }}</p>
-        <div class="line-count">📑 {{ item.num_linee }} linee totali</div>
+        {% if view_mode == 'row' %}
+          <div class="row-content">
+            <div class="row-topline">
+              <h3 class="row-title">{{ item.obj.nome }}</h3>
+              <span class="row-badge">{{ item.num_linee }} linee</span>
+            </div>
+            <div class="row-meta">
+              <span class="meta-pill">{% if item.obj.difesa %}Difesa{% else %}Attacco{% endif %}</span>
+              <span class="meta-pill">{{ item.obj.moves|wordcount }} mosse</span>
+            </div>
+            <p class="row-moves">{{ item.obj.moves|default:"Nessuna sequenza iniziale disponibile." }}</p>
+          </div>
+        {% else %}
+          <h3>{{ item.obj.nome }}</h3>
+          <p>{{ item.obj.moves }}</p>
+          <div class="line-count">{{ item.num_linee }} linee totali</div>
+        {% endif %}
       </a>
     {% empty %}
       <p>Nessuna apertura trovata.</p>
@@ -128,23 +388,169 @@
   </div>
 </div>
 
+{{ all_openings|json_script:"openings-data" }}
+
 <script>
+const openings = JSON.parse(document.getElementById('openings-data').textContent).map(item => ({
+  nome: item.nome,
+  tipo: item.difesa ? 'Difesa' : 'Attacco'
+}));
+
+const searchForm = document.getElementById('searchForm');
+const searchInput = document.getElementById('searchInput');
+const hiddenFilter = document.getElementById('hiddenFilter');
+const viewModeInput = document.getElementById('viewModeInput');
+const suggestionsBox = document.getElementById('searchSuggestions');
+const sortMode = document.getElementById('sortMode');
+let activeIndex = -1;
+let currentSuggestions = [];
+
+function hideSuggestions() {
+  suggestionsBox.hidden = true;
+  suggestionsBox.innerHTML = '';
+  searchInput.setAttribute('aria-expanded', 'false');
+  activeIndex = -1;
+  currentSuggestions = [];
+}
+
+function submitSearch() {
+  hideSuggestions();
+  searchForm.submit();
+}
+
+function updateActiveSuggestion(nextIndex) {
+  const items = suggestionsBox.querySelectorAll('.search-suggestion');
+  items.forEach((item, index) => {
+    const isActive = index === nextIndex;
+    item.classList.toggle('active', isActive);
+    item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  activeIndex = nextIndex;
+}
+
+function renderSuggestions(matches) {
+  currentSuggestions = matches.slice(0, 8);
+  if (!currentSuggestions.length) {
+    hideSuggestions();
+    return;
+  }
+
+  suggestionsBox.innerHTML = currentSuggestions.map((item, index) => `
+    <button
+      type="button"
+      class="search-suggestion"
+      role="option"
+      aria-selected="false"
+      data-index="${index}"
+      data-value="${item.nome}">
+      <span>${item.nome}</span>
+      <span class="suggestion-type">${item.tipo}</span>
+    </button>
+  `).join('');
+
+  suggestionsBox.hidden = false;
+  searchInput.setAttribute('aria-expanded', 'true');
+  updateActiveSuggestion(0);
+}
+
+function findSuggestions(value) {
+  const term = value.trim().toLowerCase();
+  if (term.length < 2) {
+    hideSuggestions();
+    return;
+  }
+
+  const startsWith = [];
+  const includes = [];
+
+  openings.forEach(item => {
+    const name = item.nome.toLowerCase();
+    if (name.startsWith(term)) {
+      startsWith.push(item);
+    } else if (name.includes(term)) {
+      includes.push(item);
+    }
+  });
+
+  renderSuggestions([...startsWith, ...includes]);
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
-    // aggiorna filtro nascosto
-    document.getElementById('hiddenFilter').value = tab.dataset.filter;
-    // invia il form
-    document.getElementById('searchForm').submit();
+    hiddenFilter.value = tab.dataset.filter;
+    submitSearch();
   });
 });
 
-// autocompletamento: aggiorna risultati al volo
-const searchInput = document.querySelector('input[name="q"]');
+document.querySelectorAll('[data-view]').forEach(button => {
+  button.addEventListener('click', () => {
+    viewModeInput.value = button.dataset.view;
+    submitSearch();
+  });
+});
+
+sortMode.addEventListener('change', () => {
+  submitSearch();
+});
+
 searchInput.addEventListener('input', function() {
-  clearTimeout(this.timer);
-  this.timer = setTimeout(() => {
-    document.getElementById('searchForm').submit();
-  }, 400);
+  findSuggestions(this.value);
+});
+
+searchInput.addEventListener('focus', () => {
+  findSuggestions(searchInput.value);
+});
+
+searchInput.addEventListener('keydown', event => {
+  if (suggestionsBox.hidden) {
+    if (event.key === 'Enter') {
+      submitSearch();
+    }
+    return;
+  }
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    updateActiveSuggestion((activeIndex + 1) % currentSuggestions.length);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    updateActiveSuggestion((activeIndex - 1 + currentSuggestions.length) % currentSuggestions.length);
+  } else if (event.key === 'Enter') {
+    event.preventDefault();
+    if (activeIndex >= 0 && currentSuggestions[activeIndex]) {
+      searchInput.value = currentSuggestions[activeIndex].nome;
+    }
+    submitSearch();
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    hideSuggestions();
+  } else if (event.key === 'Tab' && activeIndex >= 0 && currentSuggestions[activeIndex]) {
+    searchInput.value = currentSuggestions[activeIndex].nome;
+    hideSuggestions();
+  }
+});
+
+suggestionsBox.addEventListener('mousemove', event => {
+  const button = event.target.closest('.search-suggestion');
+  if (!button) return;
+  updateActiveSuggestion(Number(button.dataset.index));
+});
+
+suggestionsBox.addEventListener('mousedown', event => {
+  event.preventDefault();
+});
+
+suggestionsBox.addEventListener('click', event => {
+  const button = event.target.closest('.search-suggestion');
+  if (!button) return;
+  searchInput.value = button.dataset.value;
+  submitSearch();
+});
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.search-bar')) {
+    hideSuggestions();
+  }
 });
 </script>
 

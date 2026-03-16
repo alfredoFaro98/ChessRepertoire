@@ -3,22 +3,41 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Allenamento — {{ line.root.nome }} · Linea {{ line.numero }}</title>
+
+<!-- Anti-FOUC dark mode -->
+<script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
 
 <link rel="stylesheet" href="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.css' %}">
 <style>
+  *, *::before, *::after { box-sizing: border-box; }
   body {
     background:#f5f5f5;
     font-family:'Segoe UI', Arial, sans-serif;
     margin:0;
     padding:0;
+    transition: background .25s, color .25s;
   }
+
+  /* ── Dark mode overrides ── */
+  html.dark body           { background: #121212; color: #e0e0e0; }
+  html.dark .header-bar    { background: #0d1117; }
+  html.dark .container     { background: transparent; }
+  html.dark .btn.light     { background: #2a2a3a; color: #e0e0e0; }
+  html.dark .btn.light:hover { background: #333; }
+  html.dark .bar           { background: #333; }
+  html.dark .srs-panel     { background: #1e1e2e; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  html.dark .srs-panel h3  { color: #aaa; }
+  html.dark .muted         { color: #aaa; }
+  html.dark .arrow         { color: #90caf9; }
+  html.dark .arrow:hover   { color: #bbdefb; }
 
   .header-bar {
     width: 100%;
     background: #2c3e50;
     color: white;
-    padding: 10px 25px;
+    padding: 10px 20px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     position: fixed;
     top: 0;
@@ -32,11 +51,15 @@
   }
   .breadcrumb-header a:hover { color: #81c784; }
 
-  .container { margin-top: 90px; text-align:center; }
+  .container {
+    margin-top: 90px;
+    text-align:center;
+    padding: 0 16px 40px;
+  }
 
   #board {
-    width:480px;
-    margin:0 auto;
+    /* width set dynamically by JS */
+    margin: 0 auto;
     border:4px solid #2c3e50;
     border-radius:8px;
     box-shadow:0 6px 20px rgba(0,0,0,0.25);
@@ -45,7 +68,7 @@
   .black-3c85d { background-color:#769656; }
 
   .toolbar {
-    margin:20px 0 25px;
+    margin:16px 0;
     display:flex;
     gap:10px;
     justify-content:center;
@@ -68,15 +91,74 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
   }
 
-  .btn.primary { background:#1976d2; color:#fff; }
-  .btn.primary:hover { background:#145ca1; box-shadow: 0 3px 8px rgba(25,118,210,0.4); }
+  .btn.primary {
+    background: transparent;
+    color: #8fc7ff;
+    border: 1px solid rgba(143, 199, 255, 0.42);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .btn.primary:hover {
+    background: rgba(143, 199, 255, 0.08);
+    color: #dcedff;
+    border-color: rgba(143, 199, 255, 0.72);
+    box-shadow: 0 10px 24px rgba(80,145,255,0.12), 0 0 18px rgba(80,145,255,0.12);
+  }
 
-  .btn.success { background:#43a047; color:#fff; }
-  .btn.success:hover { background:#2e7d32; box-shadow:0 3px 8px rgba(67,160,71,0.35); }
+  .btn.success {
+    background: transparent;
+    color: #8fd4a3;
+    border: 1px solid rgba(143, 212, 163, 0.42);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .btn.success:hover {
+    background: rgba(143, 212, 163, 0.08);
+    color: #d7f7e1;
+    border-color: rgba(143, 212, 163, 0.7);
+    box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+  }
 
   .btn.light { background:#e0e0e0; color:#333; }
   .btn.light:hover { background:#d5d5d5; }
   .btn:active { transform:scale(0.97); }
+  .ui-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+  }
+
+  /* SRS rating buttons */
+  .srs-panel {
+    display: none;
+    margin: 16px auto;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .srs-panel h3 { margin: 0 0 12px; font-size: 15px; color: #555; }
+  .srs-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .srs-btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 80px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  }
+  .srs-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .srs-btn small { font-size: 11px; font-weight: 400; opacity: 0.8; }
+  .srs-again  { background: #e53935; color: #fff; }
+  .srs-hard   { background: #fb8c00; color: #fff; }
+  .srs-good   { background: #43a047; color: #fff; }
+  .srs-easy   { background: #1976d2; color: #fff; }
 
   .muted { color:#666; font-size:14px; }
 
@@ -85,59 +167,129 @@
     justify-content:center;
     align-items:center;
     gap:12px;
-    margin-bottom:20px;
+    margin-bottom:16px;
   }
-  .arrow { font-size:30px; cursor:pointer; user-select:none; color:#2c3e50; transition:0.2s; }
-  .arrow:hover { color:#1976d2; transform:scale(1.2); }
+  .arrow {
+    width:42px;
+    height:42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    color:#2c3e50;
+    transition:0.2s;
+  }
+  .arrow:hover { color:#1976d2; transform:scale(1.08); }
   .arrow.disabled { opacity:0.3; cursor:default; transform:none; }
+  .arrow .ui-icon {
+    width: 28px;
+    height: 28px;
+  }
+  #darkToggle {
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px;
+    border-radius:8px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+  }
+  #darkToggle .ui-icon {
+    width:26px;
+    height:26px;
+  }
 
-  #feedback { font-size:18px; margin-top:15px; font-weight:700; }
+  #feedback { font-size:18px; margin-top:12px; font-weight:700; min-height: 28px; }
   .correct { color:#2e7d32; }
   .wrong   { color:#c62828; }
 
-  .bar { width:480px; margin:10px auto 0; height:8px; background:#e0e0e0; border-radius:4px; overflow:hidden; }
+  .bar { width: min(480px, calc(100vw - 40px)); margin:10px auto 0; height:8px; background:#e0e0e0; border-radius:4px; overflow:hidden; }
   .bar > div { height:100%; width:0%; background:#43a047; transition:width .25s; }
+
+  @media (max-width: 520px) {
+    .btn { font-size: 13px; padding: 8px 12px; }
+    .srs-btn { min-width: 64px; font-size: 13px; padding: 8px 12px; }
+  }
 </style>
 </head>
 <body>
+{% include "repertoire/includes/icon_sprite.html" %}
 
 <header class="header-bar">
-  <div class="breadcrumb-header">
-    <a href="{% url 'opening_list' %}">ChessRepertoire</a> ›
-    <a href="{% url 'opening_detail' line.root.id %}">{{ line.root.nome }}</a> ›
-    <span>Allenamento — Linea {{ line.numero }}</span>
-    <p id="comp-count">Completata {{ line.completamenti }} volte</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div class="breadcrumb-header">
+      <a href="{% url 'opening_list' %}">ChessRepertoire</a> &gt;
+      <a href="{% url 'opening_detail' line.root.id %}">{{ line.root.nome }}</a> &gt;
+      <span>Allenamento - Linea {{ line.numero }}</span>
+      <p id="comp-count" style="margin:2px 0 0;font-size:13px;opacity:0.8;">Completata {{ line.completamenti }} volte</p>
+    </div>
+    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
   </div>
 </header>
 
 <div class="container">
   <div class="nav-arrows">
     {% if prev_line %}
-      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id prev_line.numero %}'">⬅</span>
+      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id prev_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
     {% else %}
-      <span class="arrow disabled">⬅</span>
+      <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
     {% endif %}
     <span class="muted">Allenamento linea {{ line.numero }}</span>
     {% if next_line %}
-      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'">➡</span>
+      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
     {% else %}
-      <span class="arrow disabled">➡</span>
+      <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
     {% endif %}
   </div>
 
   <div class="toolbar">
-    <button id="asWhite" class="btn light">♔ Allena il Bianco</button>
-    <button id="asBlack" class="btn light">♚ Allena il Nero</button>
+    <button id="asWhite" class="btn light">Allena il Bianco</button>
+    <button id="asBlack" class="btn light">Allena il Nero</button>
   </div>
 
-  <div id="board"></div>
+  <!-- wrapper per overlay SVG freccia hint -->
+  <div style="position:relative; display:inline-block;">
+    <div id="board"></div>
+    <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="rgba(220,50,50,0.92)"/>
+        </marker>
+      </defs>
+      <line id="hintLine" x1="0" y1="0" x2="0" y2="0"
+            stroke="rgba(220,50,50,0.92)" stroke-width="10" stroke-linecap="round"
+            marker-end="url(#arrowhead)"/>
+    </svg>
+  </div>
   <div class="bar"><div id="progress"></div></div>
   <div id="feedback"></div>
 
+  <!-- Pannello rating SRS (appare dopo il completamento) -->
+  <div class="srs-panel" id="srsPanel">
+    <h3>Come ti e' sembrata questa linea?</h3>
+    <div class="srs-buttons">
+      <button class="srs-btn srs-again" onclick="valutaLinea(0)">
+        Di nuovo<small>Rivedila subito</small>
+      </button>
+      <button class="srs-btn srs-hard" onclick="valutaLinea(3)">
+        Difficile<small>Presto</small>
+      </button>
+      <button class="srs-btn srs-good" onclick="valutaLinea(4)">
+        Bene<small>Tra qualche giorni</small>
+      </button>
+      <button class="srs-btn srs-easy" onclick="valutaLinea(5)">
+        Facile<small>Tra molti giorni</small>
+      </button>
+    </div>
+  </div>
+
   <div class="toolbar">
-    <button id="restartBtn" class="btn success" style="display:none;">🔁 Ricomincia</button>
-    <button class="btn light" onclick="window.location.href='{% url 'line_detail' line.root.id line.numero %}'">⬅ Torna alla linea</button>
-    <button class="btn primary" onclick="window.location.href='{% url 'opening_detail' line.root.id %}'">📖 Vai all’apertura</button>
+    <button id="restartBtn" class="btn success" style="display:none;"><svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ricomincia</span></button>
+    <button class="btn light" onclick="window.location.href='{% url 'line_detail' line.root.id line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg><span>Torna alla linea</span></button>
+    <button class="btn primary" onclick="window.location.href='{% url 'opening_detail' line.root.id %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg><span>Vai all'apertura</span></button>
   </div>
 </div>
 
@@ -146,7 +298,6 @@
 <script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
 <script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
 
-<!-- === STEP 4: CSRF helper === -->
 <script>
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -155,7 +306,6 @@ function getCookie(name) {
 }
 </script>
 
-<!-- === SCRIPT PRINCIPALE === -->
 <script>
 (function () {
   const PIECE_BASE = "{% static 'vendor/chessboardjs/img/' %}";
@@ -169,101 +319,223 @@ function getCookie(name) {
     .split(/\s+/)
     .filter(x => x && !['1-0','0-1','1/2-1/2','*'].includes(x));
 
-  const game = new window.Chess();
-  const progressEl = document.getElementById('progress');
-  const feedback = document.getElementById('feedback');
-  const restartBtn = document.getElementById('restartBtn');
-  let sideToTrain = 'w';
-  let idx = 0;
+  const game        = new window.Chess();
+  const progressEl  = document.getElementById('progress');
+  const feedback    = document.getElementById('feedback');
+  const restartBtn  = document.getElementById('restartBtn');
+  const srsPanel    = document.getElementById('srsPanel');
+  let sideToTrain    = 'w';
+  let idx            = 0;
+  let selectedSquare = null;
+  let lineaCompletata = false;
+  let trainingStartTime = null;
+  let arrowTimeout   = null;
+
+  // ─── Dimensioni responsive ─────────────────────────────────────────────────
+  function getBoardSize() {
+    return Math.min(480, window.innerWidth - 40);
+  }
 
   const board = Chessboard('board', {
     draggable: true,
     position: 'start',
     orientation: 'white',
     pieceTheme: piece => PIECE_BASE + piece + '.png',
-    onDragStart: onDragStart,
-    onDrop: onDrop,
-    onMouseoverSquare: onMouseoverSquare,
-    onMouseoutSquare: removeHighlights,
-    onSnapEnd: () => board.position(game.fen()),
+    onDragStart:        onDragStart,
+    onDrop:             onDrop,
+    onMouseoverSquare:  onMouseoverSquare,
+    onMouseoutSquare:   removeHighlights,
+    onSnapEnd:          () => board.position(game.fen()),
+    onSquareClick:      onSquareClick,
   });
+
+  // Imposta larghezza iniziale e al resize
+  function resizeBoard() {
+    const size = getBoardSize();
+    document.getElementById('board').style.width = size + 'px';
+    board.resize();
+    document.querySelector('.bar').style.width = size + 'px';
+  }
+  window.addEventListener('resize', resizeBoard);
+  resizeBoard();
 
   setSide('w');
   document.getElementById('asWhite').onclick = () => setSide('w');
   document.getElementById('asBlack').onclick = () => setSide('b');
 
+  // ─── Freccia hint ────────────────────────────────────────────────────────
+  function showHintArrow(fromSq, toSq) {
+    const bSize = getBoardSize();
+    const svg   = document.getElementById('hintArrowSvg');
+    const line  = document.getElementById('hintLine');
+    svg.setAttribute('width',  bSize);
+    svg.setAttribute('height', bSize);
+
+    const isFlipped = board.orientation() === 'black';
+    const sqSize    = bSize / 8;
+    const FILES     = 'abcdefgh';
+
+    function sqXY(sq) {
+      const col = FILES.indexOf(sq[0]);
+      const row = parseInt(sq[1]) - 1;
+      return isFlipped
+        ? { x: (7 - col) * sqSize + sqSize / 2, y: row * sqSize + sqSize / 2 }
+        : { x: col * sqSize + sqSize / 2,        y: (7 - row) * sqSize + sqSize / 2 };
+    }
+
+    const from = sqXY(fromSq), to = sqXY(toSq);
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const f   = len > 30 ? (len - 22) / len : 1;
+
+    line.setAttribute('x1', from.x);
+    line.setAttribute('y1', from.y);
+    line.setAttribute('x2', from.x + dx * f);
+    line.setAttribute('y2', from.y + dy * f);
+    svg.style.display = '';
+
+    clearTimeout(arrowTimeout);
+    arrowTimeout = setTimeout(() => { svg.style.display = 'none'; }, 2500);
+  }
+
+  function hideHintArrow() {
+    document.getElementById('hintArrowSvg').style.display = 'none';
+    clearTimeout(arrowTimeout);
+  }
+
   function setSide(side) {
     sideToTrain = side;
+    lineaCompletata = false;
+    trainingStartTime = Date.now();
+    hideHintArrow();
     game.reset();
     board.start();
     board.orientation(side === 'w' ? 'white' : 'black');
     idx = 0;
-    setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} — gioca la mossa corretta`, '');
+    selectedSquare = null;
+    srsPanel.style.display = 'none';
     restartBtn.style.display = 'none';
+    setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} - gioca la mossa corretta`, '');
     updateProgress();
     if (side === 'b' && movesSAN.length) {
       try { game.move(movesSAN[idx]); idx++; board.position(game.fen()); } catch(e) { console.warn(e); }
     }
   }
 
-  function setFeedback(text, cls){
+  function setFeedback(text, cls) {
     feedback.className = cls || '';
     feedback.textContent = text;
   }
   function updateProgress() {
     progressEl.style.width = Math.min(100, Math.round((idx / movesSAN.length) * 100)) + '%';
   }
-  function squareEl(sq){ return document.querySelector('#board .square-' + sq); }
-  function highlight(sq){
+  function squareEl(sq) { return document.querySelector('#board .square-' + sq); }
+  function clearHighlights() {
+    document.querySelectorAll('#board .square-55d63').forEach(el => el.style.background = '');
+  }
+  function highlight(sq) {
     const el = squareEl(sq); if (!el) return;
     const dark = el.classList.contains('black-3c85d');
     const base = dark ? '#769656' : '#eeeed2';
     el.style.background = `radial-gradient(circle, rgba(0,184,212,.9) 22%, ${base} 23%)`;
   }
-  function removeHighlights(){
-    document.querySelectorAll('#board .square-55d63').forEach(el => el.style.background = '');
+  function paintSelectedMoves() {
+    if (!selectedSquare) return;
+    clearHighlights();
+    highlight(selectedSquare);
+    game.moves({ square: selectedSquare, verbose: true }).forEach(m => highlight(m.to));
+  }
+  function removeHighlights() {
+    if (selectedSquare) {
+      paintSelectedMoves();
+      return;
+    }
+    clearHighlights();
   }
 
-  function onDragStart (source, piece) {
-    if (game.game_over()) return false;
+  // ─── Logica mossa condivisa ────────────────────────────────────────────────
+  function processMove(source, target) {
+    const mv = game.move({ from: source, to: target, promotion: 'q' });
+    if (!mv) return false;
+
+    const expected = movesSAN[idx] || null;
+    if (!expected || mv.san !== expected) {
+      game.undo();
+      setFeedback(`Sbagliato: dovevi giocare ${expected || '-'}`, 'wrong');
+      board.position(game.fen());
+      // Mostra freccia sulla mossa corretta
+      try {
+        const tempGame = new Chess(game.fen());
+        const hint = tempGame.move(expected, { sloppy: true });
+        if (hint) showHintArrow(hint.from, hint.to);
+      } catch(e) {}
+      return false;
+    }
+
+    idx++;
+    hideHintArrow();
+    setFeedback(`Corretto: ${mv.san}`, 'correct');
+    board.position(game.fen());
+    updateProgress();
+
+    if (idx < movesSAN.length) {
+      try { game.move(movesSAN[idx]); idx++; board.position(game.fen()); updateProgress(); }
+      catch(e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
+    }
+
+    if (idx >= movesSAN.length) {
+      setFeedback('Linea completata.', 'correct');
+      restartBtn.style.display = 'inline-block';
+      lineaCompletata = true;
+      srsPanel.style.display = 'block';
+    }
+    return true;
+  }
+
+  // ─── Drag & Drop ──────────────────────────────────────────────────────────
+  function onDragStart(source, piece) {
+    if (game.game_over() || lineaCompletata) return false;
     if (game.turn() !== sideToTrain) return false;
     if (sideToTrain === 'w' && piece.startsWith('b')) return false;
     if (sideToTrain === 'b' && piece.startsWith('w')) return false;
   }
 
-  function onDrop (source, target) {
+  function onDrop(source, target) {
     removeHighlights();
-    const mv = game.move({ from: source, to: target, promotion: 'q' });
-    if (!mv) return 'snapback';
+    selectedSquare = null;
+    if (!processMove(source, target)) return 'snapback';
+  }
 
-    const expected = movesSAN[idx] || null;
-    if (!expected || mv.san !== expected) {
-      game.undo();
-      setFeedback(`❌ Sbagliato: dovevi giocare ${expected || '—'}`, 'wrong');
-      return 'snapback';
+  // ─── Click-to-move ────────────────────────────────────────────────────────
+  function onSquareClick(square, piece) {
+    if (game.game_over() || lineaCompletata) return;
+    if (game.turn() !== sideToTrain) return;
+
+    const isOwnPiece = piece && (
+      (sideToTrain === 'w' && piece.startsWith('w')) ||
+      (sideToTrain === 'b' && piece.startsWith('b'))
+    );
+
+    if (isOwnPiece) {
+      if (selectedSquare === square) {
+        selectedSquare = null;
+        clearHighlights();
+        return;
+      }
+      selectedSquare = square;
+      paintSelectedMoves();
+      return;
     }
 
-    idx++;
-    setFeedback(`✅ Corretto: ${mv.san}`, 'correct');
-    board.position(game.fen());
-    updateProgress();
-
-    if (idx < movesSAN.length) {
-      const replySAN = movesSAN[idx];
-      try { game.move(replySAN); idx++; board.position(game.fen()); updateProgress(); }
-      catch(e) { console.warn('Reply SAN non giocabile:', replySAN, e); }
-    }
-
-    // 👇 SEZIONE FINALE — linea completata
-    if (idx >= movesSAN.length) {
-      setFeedback('🎉 Linea completata!', 'correct');
-      restartBtn.style.display = 'inline-block';
-      segnalaFineLinea({{ line.id }});
+    if (selectedSquare) {
+      processMove(selectedSquare, square);
+      selectedSquare = null;
+      clearHighlights();
     }
   }
 
-  function onMouseoverSquare (sq) {
-    if (game.turn() !== sideToTrain) return;
+  function onMouseoverSquare(sq) {
+    if (game.turn() !== sideToTrain || selectedSquare) return;
     const legal = game.moves({ square: sq, verbose: true });
     if (!legal.length) return;
     highlight(sq);
@@ -271,32 +543,72 @@ function getCookie(name) {
   }
 
   restartBtn.addEventListener('click', () => setSide(sideToTrain));
+
+  document.getElementById('board').addEventListener('click', event => {
+    const squareNode = event.target.closest('.square-55d63');
+    if (!squareNode) {
+      selectedSquare = null;
+      clearHighlights();
+      return;
+    }
+
+    const squareClass = Array.from(squareNode.classList).find(cls => cls.startsWith('square-') && cls !== 'square-55d63');
+    if (!squareClass) return;
+
+    const square = squareClass.replace('square-', '');
+    const piece = game.get(square);
+    const pieceCode = piece ? piece.color + piece.type.toUpperCase() : false;
+    onSquareClick(square, pieceCode);
+  });
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('#board') && selectedSquare) {
+      selectedSquare = null;
+      clearHighlights();
+    }
+  });
+
+  // ─── SRS API ──────────────────────────────────────────────────────────────
+  window.valutaLinea = function(quality) {
+    const url        = "{% url 'incrementa_completamenti' 0 %}".replace("/0/", "/{{ line.id }}/");
+    const timeSeconds = trainingStartTime ? Math.round((Date.now() - trainingStartTime) / 1000) : null;
+    srsPanel.style.display = 'none';
+    trainingStartTime = null;  // reset per evitare doppio invio
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCookie("csrftoken"),
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: JSON.stringify({ quality, time_seconds: timeSeconds })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const header = document.getElementById("comp-count");
+        if (header) header.textContent = `Completata ${data.totale} volte`;
+        const giorni = data.srs_interval;
+        setFeedback(`Salvato. Prossima ripetizione tra ${giorni} giorno${giorni === 1 ? '' : 'i'}`, 'correct');
+      }
+    })
+    .catch(err => console.error("Errore fetch:", err));
+  };
+
 })();
 </script>
 
-<!-- === SEGNA COMpletamento === -->
 <script>
-function segnalaFineLinea(lineId) {
-  const url = "{% url 'incrementa_completamenti' 0 %}".replace("/0/", "/" + lineId + "/");
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "X-CSRFToken": getCookie("csrftoken"),
-      "X-Requested-With": "XMLHttpRequest"
-    }
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
-      console.log("✅ Linea completata! Totale:", data.totale);
-      const header = document.getElementById("comp-count");
-      if (header) header.textContent = `Completata ${data.totale} volte`;
-    } else {
-      console.error("Errore:", data.error);
-    }
-  })
-  .catch(err => console.error("Errore fetch:", err));
-}
+(function(){
+  var btn = document.getElementById('darkToggle');
+  if (!btn) return;
+  btn.innerHTML = document.documentElement.classList.contains('dark') ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>' : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  btn.addEventListener('click', function(){
+    var isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', isDark ? '1' : '0');
+    btn.innerHTML = isDark ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>' : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  });
+})();
 </script>
 
 </body>

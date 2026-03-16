@@ -1,0 +1,5 @@
+1. migliorare frecce
+2. fare spuntare le mosse a destra quando si va avanti a schermo desktop
+3. creare modalità per la scrittura della linea da tavolo cosi si può ricordare meglio
+4. aggiornare le linee
+5. migliorare l'interfaccia
