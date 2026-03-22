@@ -88,6 +88,34 @@ class FinaleCapitolo(models.Model):
         return self.nome
 
 
+class FinaleLine(models.Model):
+    capitolo    = models.ForeignKey(FinaleCapitolo, on_delete=models.CASCADE, related_name='linee')
+    numero      = models.PositiveIntegerField(default=0, null=True, blank=True)
+    titolo      = models.CharField(max_length=200, blank=True, null=True)
+    fen_start   = models.TextField()
+    pgn         = models.TextField()
+    note        = models.TextField(blank=True, null=True)
+    flipped     = models.BooleanField(default=False)
+    completamenti = models.PositiveIntegerField(default=0)
+    difficolta  = models.CharField(max_length=20, choices=DIFFICOLTA_CHOICES, default='media', blank=True)
+    parent      = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL, related_name='varianti'
+    )
+
+    class Meta:
+        ordering = ['numero']
+
+    def __str__(self):
+        return f"{self.capitolo.nome} - Linea {self.numero}"
+
+    def count_moves(self):
+        clean = self.pgn.replace('{', '').replace('}', '')
+        return len([m for m in clean.split() if '.' not in m and m not in ['1-0', '0-1', '1/2-1/2', '*']])
+
+    def is_leaf(self):
+        return not self.varianti.exists()
+
+
 class FinalePosizione(models.Model):
     capitolo    = models.ForeignKey(FinaleCapitolo, on_delete=models.CASCADE, related_name='posizioni')
     titolo      = models.CharField(max_length=200)

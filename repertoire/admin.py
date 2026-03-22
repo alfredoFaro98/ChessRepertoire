@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione
+from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione, FinaleLine
 from .utils import trova_parent
 
 
@@ -118,5 +118,26 @@ class FinalePosizoneAdmin(admin.ModelAdmin):
     list_display = ('capitolo', 'titolo', 'difficolta', 'completamenti')
     list_filter = ('capitolo', 'difficolta')
     search_fields = ('titolo', 'note')
+
+
+class FinaleLineInline(admin.TabularInline):
+    model = FinaleLine
+    extra = 1
+    fields = ('numero', 'titolo', 'fen_start', 'pgn', 'difficolta', 'flipped')
+
+
+@admin.register(FinaleLine)
+class FinaleLineAdmin(admin.ModelAdmin):
+    list_display = ('capitolo', 'numero', 'titolo', 'difficolta', 'completamenti', 'pgn_display')
+    list_filter = ('capitolo', 'difficolta')
+    search_fields = ('titolo', 'pgn', 'fen_start')
+
+    def pgn_display(self, obj):
+        if not obj.pgn:
+            return ""
+        text = obj.pgn.replace("\n", " ").strip()
+        short = text if len(text) <= 80 else text[:80] + "…"
+        return format_html("<span title='{}'>{}</span>", text, short)
+    pgn_display.short_description = "Mosse (PGN)"
 
 

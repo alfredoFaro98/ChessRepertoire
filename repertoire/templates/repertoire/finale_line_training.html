@@ -1,0 +1,586 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allenamento — {{ capitolo.nome }} · Linea {{ line.numero }}</title>
+
+<!-- Anti-FOUC dark mode -->
+<script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
+
+<link rel="stylesheet" href="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.css' %}">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    background:#f5f5f5;
+    font-family:'Segoe UI', Arial, sans-serif;
+    margin:0;
+    padding:0;
+    transition: background .25s, color .25s;
+  }
+
+  html.dark body           { background: #121212; color: #e0e0e0; }
+  html.dark .header-bar    { background: #0d1117; }
+  html.dark .container     { background: transparent; }
+  html.dark .btn.light     { background: #2a2a3a; color: #e0e0e0; }
+  html.dark .btn.light:hover { background: #333; }
+  html.dark .bar           { background: #333; }
+  html.dark .muted         { color: #aaa; }
+  html.dark .arrow         { color: #90caf9; }
+  html.dark .arrow:hover   { color: #bbdefb; }
+
+  .board-with-moves {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 10px;
+  }
+  .movelist {
+    width: 100px;
+    max-height: 480px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 4px;
+  }
+  .movelist-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .move-chip {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: 'Segoe UI', monospace;
+  }
+  .move-chip.mine     { background: rgba(67,160,71,0.13); }
+  .move-chip.opponent { background: rgba(25,118,210,0.11); }
+  html.dark .move-chip.mine     { background: rgba(67,160,71,0.22); }
+  html.dark .move-chip.opponent { background: rgba(25,118,210,0.22); }
+  .move-num { font-size: 11px; opacity: 0.55; min-width: 16px; flex-shrink: 0; }
+  .move-san { font-size: 14px; font-weight: 700; color: inherit; }
+  .mine  .move-san { color: #2e7d32; }
+  .opponent .move-san { color: #1565c0; }
+  html.dark .mine     .move-san { color: #81c784; }
+  html.dark .opponent .move-san { color: #90caf9; }
+  @media (max-width: 680px) { .movelist { display: none; } }
+
+  .header-bar {
+    width: 100%;
+    background: #2c3e50;
+    color: white;
+    padding: 10px 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+  }
+  .breadcrumb-header a {
+    text-decoration: none;
+    color: #a5d6a7;
+    font-weight: 600;
+  }
+  .breadcrumb-header a:hover { color: #81c784; }
+
+  .container {
+    margin-top: 90px;
+    text-align:center;
+    padding: 0 16px 40px;
+  }
+
+  #board {
+    margin: 0 auto;
+    border:4px solid #2c3e50;
+    border-radius:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.25);
+  }
+  .white-1e1d7 { background-color:#eeeed2; }
+  .black-3c85d { background-color:#769656; }
+
+  .toolbar {
+    margin:16px 0;
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .btn {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    border:none;
+    border-radius:8px;
+    padding:10px 18px;
+    cursor:pointer;
+    transition:all 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .btn.primary {
+    background: transparent;
+    color: #8fc7ff;
+    border: 1px solid rgba(143, 199, 255, 0.42);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .btn.primary:hover {
+    background: rgba(143, 199, 255, 0.08);
+    color: #dcedff;
+    border-color: rgba(143, 199, 255, 0.72);
+    box-shadow: 0 10px 24px rgba(80,145,255,0.12), 0 0 18px rgba(80,145,255,0.12);
+  }
+  .btn.success {
+    background: transparent;
+    color: #8fd4a3;
+    border: 1px solid rgba(143, 212, 163, 0.42);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .btn.success:hover {
+    background: rgba(143, 212, 163, 0.08);
+    color: #d7f7e1;
+    border-color: rgba(143, 212, 163, 0.7);
+    box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+  }
+  .btn.light { background:#e0e0e0; color:#333; }
+  .btn.light:hover { background:#d5d5d5; }
+  .btn:active { transform:scale(0.97); }
+  .ui-icon { width: 24px; height: 24px; flex: 0 0 auto; }
+
+  .muted { color:#666; font-size:14px; }
+
+  .nav-arrows {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .arrow {
+    width:42px; height:42px;
+    display:inline-flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; color:#2c3e50; transition:0.2s;
+  }
+  .arrow:hover { color:#1976d2; transform:scale(1.08); }
+  .arrow.disabled { opacity:0.3; cursor:default; transform:none; }
+  .arrow .ui-icon { width: 28px; height: 28px; }
+
+  #darkToggle {
+    background:none; border:none; cursor:pointer; padding:6px; border-radius:8px;
+    display:inline-flex; align-items:center; justify-content:center; color:white;
+  }
+  #darkToggle .ui-icon { width:26px; height:26px; }
+
+  #feedback { font-size:18px; margin-top:12px; font-weight:700; min-height: 28px; }
+  .correct { color:#2e7d32; }
+  .wrong   { color:#c62828; }
+
+  .bar { width: min(480px, calc(100vw - 40px)); margin:10px auto 0; height:8px; background:#e0e0e0; border-radius:4px; overflow:hidden; }
+  .bar > div { height:100%; width:0%; background:#43a047; transition:width .25s; }
+
+  @media (max-width: 520px) { .btn { font-size: 13px; padding: 8px 12px; } }
+</style>
+</head>
+<body>
+{% include "repertoire/includes/icon_sprite.html" %}
+
+<header class="header-bar">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div class="breadcrumb-header">
+      <a href="{% url 'finali_list' %}">Finali</a> &gt;
+      <a href="{% url 'finali_chapter_detail' capitolo.id %}">{{ capitolo.nome }}</a> &gt;
+      <span>Allenamento - Linea {{ line.numero }}</span>
+      <p id="comp-count" style="margin:2px 0 0;font-size:13px;opacity:0.8;">Completata {{ line.completamenti }} volte</p>
+    </div>
+    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="nav-arrows">
+    {% if prev_line %}
+      <span class="arrow" onclick="window.location.href='{% url 'finale_line_training' capitolo.id prev_line.numero %}'">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg>
+      </span>
+    {% else %}
+      <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
+    {% endif %}
+    <span class="muted">Allenamento linea {{ line.numero }}</span>
+    {% if next_line %}
+      <span class="arrow" onclick="window.location.href='{% url 'finale_line_training' capitolo.id next_line.numero %}'">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>
+      </span>
+    {% else %}
+      <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+    {% endif %}
+  </div>
+
+  <div class="toolbar">
+    <button id="asWhite" class="btn light">Allena il Bianco</button>
+    <button id="asBlack" class="btn light">Allena il Nero</button>
+  </div>
+
+  <div class="board-with-moves">
+    <div class="movelist" id="movelistRight">
+      <div class="movelist-label">Tu</div>
+    </div>
+    <div style="position:relative; display:inline-block;">
+      <div id="board"></div>
+      <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="rgba(220,50,50,0.92)"/>
+          </marker>
+        </defs>
+        <line id="hintLine" x1="0" y1="0" x2="0" y2="0"
+              stroke="rgba(220,50,50,0.92)" stroke-width="10" stroke-linecap="round"
+              marker-end="url(#arrowhead)"/>
+      </svg>
+    </div>
+    <div class="movelist" id="movelistLeft">
+      <div class="movelist-label">Avversario</div>
+    </div>
+  </div>
+  <div class="bar"><div id="progress"></div></div>
+  <div id="feedback"></div>
+
+  <div class="toolbar">
+    <button id="restartBtn" class="btn success" style="display:none;">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ricomincia</span>
+    </button>
+    <button class="btn light" onclick="window.location.href='{% url 'finale_line_detail' capitolo.id line.numero %}'">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg><span>Torna alla linea</span>
+    </button>
+    <button class="btn primary" onclick="window.location.href='{% url 'finali_chapter_detail' capitolo.id %}'">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg><span>Vai al capitolo</span>
+    </button>
+  </div>
+</div>
+
+<script src="{% static 'vendor/jquery/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
+<script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
+
+<script>
+(function () {
+  const PIECE_BASE = "{% static 'vendor/chessboardjs/img/' %}";
+  const fen_start  = `{{ line.fen_start|escapejs }}`;
+  const pgn = `{{ line.pgn|escapejs }}`;
+  const movesSAN = pgn
+    .replace(/{[^}]*}/g,'')
+    .replace(/\$\d+/g,'')
+    .replace(/\([^)]*\)/g,'')
+    .replace(/\d+\.(\.\.)?/g,' ')
+    .trim()
+    .split(/\s+/)
+    .filter(x => x && !['1-0','0-1','1/2-1/2','*'].includes(x));
+
+  const game        = new window.Chess(fen_start);
+  const progressEl  = document.getElementById('progress');
+  const feedback    = document.getElementById('feedback');
+  const restartBtn  = document.getElementById('restartBtn');
+
+  // Determina il lato di default dal FEN
+  const fenTurn = fen_start.split(' ')[1] || 'w';
+  let sideToTrain    = fenTurn;
+  let idx            = 0;
+  let selectedSquare = null;
+  let lineaCompletata = false;
+  let arrowTimeout   = null;
+
+  const mlLeft  = document.getElementById('movelistLeft');
+  const mlRight = document.getElementById('movelistRight');
+
+  function clearMovelists() {
+    mlLeft.innerHTML  = '<div class="movelist-label">Avversario</div>';
+    mlRight.innerHTML = '<div class="movelist-label">Tu</div>';
+  }
+
+  function addMoveChip(san, isMyMove, num) {
+    const el = document.createElement('div');
+    el.className = 'move-chip ' + (isMyMove ? 'mine' : 'opponent');
+    el.innerHTML = `<span class="move-num">${num}.</span><span class="move-san">${san}</span>`;
+    const col = isMyMove ? mlRight : mlLeft;
+    col.appendChild(el);
+    col.scrollTop = col.scrollHeight;
+  }
+
+  function getBoardSize() {
+    return Math.min(480, window.innerWidth - 40);
+  }
+
+  const board = Chessboard('board', {
+    draggable: true,
+    position:  fen_start,
+    orientation: fenTurn === 'w' ? 'white' : 'black',
+    pieceTheme: piece => PIECE_BASE + piece + '.png',
+    onDragStart:        onDragStart,
+    onDrop:             onDrop,
+    onMouseoverSquare:  onMouseoverSquare,
+    onMouseoutSquare:   removeHighlights,
+    onSnapEnd:          () => board.position(game.fen()),
+  });
+
+  function resizeBoard() {
+    const size = getBoardSize();
+    document.getElementById('board').style.width = size + 'px';
+    board.resize();
+    document.querySelector('.bar').style.width = size + 'px';
+  }
+  window.addEventListener('resize', resizeBoard);
+  resizeBoard();
+
+  setSide(fenTurn);
+  document.getElementById('asWhite').onclick = () => setSide('w');
+  document.getElementById('asBlack').onclick = () => setSide('b');
+
+  function showHintArrow(fromSq, toSq) {
+    const bSize = getBoardSize();
+    const svg   = document.getElementById('hintArrowSvg');
+    const line  = document.getElementById('hintLine');
+    svg.setAttribute('width',  bSize);
+    svg.setAttribute('height', bSize);
+
+    const isFlipped = board.orientation() === 'black';
+    const sqSize    = bSize / 8;
+    const FILES     = 'abcdefgh';
+
+    function sqXY(sq) {
+      const col = FILES.indexOf(sq[0]);
+      const row = parseInt(sq[1]) - 1;
+      return isFlipped
+        ? { x: (7 - col) * sqSize + sqSize / 2, y: row * sqSize + sqSize / 2 }
+        : { x: col * sqSize + sqSize / 2,        y: (7 - row) * sqSize + sqSize / 2 };
+    }
+
+    const from = sqXY(fromSq), to = sqXY(toSq);
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const f   = len > 30 ? (len - 22) / len : 1;
+
+    line.setAttribute('x1', from.x);
+    line.setAttribute('y1', from.y);
+    line.setAttribute('x2', from.x + dx * f);
+    line.setAttribute('y2', from.y + dy * f);
+    svg.style.display = '';
+
+    clearTimeout(arrowTimeout);
+    arrowTimeout = setTimeout(() => { svg.style.display = 'none'; }, 2500);
+  }
+
+  function hideHintArrow() {
+    document.getElementById('hintArrowSvg').style.display = 'none';
+    clearTimeout(arrowTimeout);
+  }
+
+  function setSide(side) {
+    sideToTrain = side;
+    lineaCompletata = false;
+    hideHintArrow();
+    game.load(fen_start);
+    board.position(fen_start);
+    board.orientation(side === 'w' ? 'white' : 'black');
+    idx = 0;
+    selectedSquare = null;
+    restartBtn.style.display = 'none';
+    clearMovelists();
+    setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} - gioca la mossa corretta`, '');
+    updateProgress();
+    // Se alleniamo il lato che NON muove per primo, l'avversario gioca subito
+    if (side !== fenTurn && movesSAN.length) {
+      try {
+        const autoMv = game.move(movesSAN[idx]);
+        if (autoMv) addMoveChip(autoMv.san, false, Math.floor(idx/2) + 1);
+        idx++;
+        board.position(game.fen());
+      } catch(e) { console.warn(e); }
+    }
+  }
+
+  function setFeedback(text, cls) {
+    feedback.className = cls || '';
+    feedback.textContent = text;
+  }
+  function updateProgress() {
+    progressEl.style.width = Math.min(100, Math.round((idx / movesSAN.length) * 100)) + '%';
+  }
+  function squareEl(sq) { return document.querySelector('#board .square-' + sq); }
+  function clearHighlights() {
+    document.querySelectorAll('#board .square-55d63').forEach(el => el.style.background = '');
+  }
+  function highlight(sq) {
+    const el = squareEl(sq); if (!el) return;
+    const dark = el.classList.contains('black-3c85d');
+    const base = dark ? '#769656' : '#eeeed2';
+    el.style.background = `radial-gradient(circle, rgba(0,184,212,.9) 22%, ${base} 23%)`;
+  }
+  function paintSelectedMoves() {
+    if (!selectedSquare) return;
+    clearHighlights();
+    highlight(selectedSquare);
+    game.moves({ square: selectedSquare, verbose: true }).forEach(m => highlight(m.to));
+  }
+  function removeHighlights() {
+    if (selectedSquare) { paintSelectedMoves(); return; }
+    clearHighlights();
+  }
+
+  function processMove(source, target) {
+    const mv = game.move({ from: source, to: target, promotion: 'q' });
+    if (!mv) return false;
+
+    const expected = movesSAN[idx] || null;
+    if (!expected || mv.san !== expected) {
+      game.undo();
+      setFeedback(`Sbagliato: dovevi giocare ${expected || '-'}`, 'wrong');
+      board.position(game.fen());
+      try {
+        const tempGame = new Chess(game.fen());
+        const hint = tempGame.move(expected, { sloppy: true });
+        if (hint) showHintArrow(hint.from, hint.to);
+      } catch(e) {}
+      return false;
+    }
+
+    const myMoveNum = Math.floor(idx/2) + 1;
+    idx++;
+    addMoveChip(mv.san, true, myMoveNum);
+    hideHintArrow();
+    setFeedback(`Corretto: ${mv.san}`, 'correct');
+    board.position(game.fen());
+    updateProgress();
+
+    if (idx < movesSAN.length) {
+      try {
+        const replyMoveNum = Math.floor(idx/2) + 1;
+        const replyMv = game.move(movesSAN[idx]);
+        if (replyMv) addMoveChip(replyMv.san, false, replyMoveNum);
+        idx++;
+        board.position(game.fen());
+        updateProgress();
+      } catch(e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
+    }
+
+    if (idx >= movesSAN.length) {
+      setFeedback('Linea completata.', 'correct');
+      restartBtn.style.display = 'inline-block';
+      lineaCompletata = true;
+    }
+    return true;
+  }
+
+  function onDragStart(source, piece) {
+    if (game.game_over() || lineaCompletata) return false;
+    if (game.turn() !== sideToTrain) return false;
+    if (sideToTrain === 'w' && piece.startsWith('b')) return false;
+    if (sideToTrain === 'b' && piece.startsWith('w')) return false;
+  }
+
+  function onDrop(source, target) {
+    if (source === target) return 'snapback';
+    removeHighlights();
+    selectedSquare = null;
+    if (!processMove(source, target)) return 'snapback';
+  }
+
+  let _clickState = null;
+
+  function handleInputStart(event) {
+    const squareNode = event.target.closest('.square-55d63');
+    if (!squareNode) { _clickState = null; return; }
+    const squareClass = Array.from(squareNode.classList).find(c => c.startsWith('square-') && c !== 'square-55d63');
+    if (!squareClass) return;
+    let x, y;
+    if (event.touches && event.touches.length > 0) {
+      x = event.touches[0].clientX; y = event.touches[0].clientY;
+    } else {
+      x = event.clientX; y = event.clientY;
+    }
+    _clickState = { square: squareClass.replace('square-', ''), x: x, y: y };
+  }
+
+  const boardElNode = document.getElementById('board');
+  boardElNode.addEventListener('mousedown', handleInputStart, true);
+  boardElNode.addEventListener('touchstart', handleInputStart, {capture: true, passive: true});
+
+  function handleInputEnd(event) {
+    if (!_clickState) return;
+    let x, y;
+    if (event.changedTouches && event.changedTouches.length > 0) {
+      x = event.changedTouches[0].clientX; y = event.changedTouches[0].clientY;
+    } else {
+      x = event.clientX; y = event.clientY;
+    }
+    const dx = Math.abs(x - _clickState.x);
+    const dy = Math.abs(y - _clickState.y);
+    const square = _clickState.square;
+    _clickState = null;
+    if (dx > 8 || dy > 8) return;
+
+    if (game.game_over() || lineaCompletata) return;
+    if (game.turn() !== sideToTrain) return;
+
+    const piece = game.get(square);
+    const isOwnPiece = piece && piece.color === sideToTrain;
+
+    if (isOwnPiece) {
+      if (selectedSquare === square) { selectedSquare = null; clearHighlights(); return; }
+      selectedSquare = square;
+      paintSelectedMoves();
+      return;
+    }
+
+    if (selectedSquare) {
+      processMove(selectedSquare, square);
+      selectedSquare = null;
+      clearHighlights();
+    }
+  }
+
+  document.addEventListener('mouseup', handleInputEnd);
+  document.addEventListener('touchend', handleInputEnd);
+
+  function onMouseoverSquare(sq) {
+    if (game.turn() !== sideToTrain || selectedSquare) return;
+    const legal = game.moves({ square: sq, verbose: true });
+    if (!legal.length) return;
+    highlight(sq);
+    legal.forEach(m => highlight(m.to));
+  }
+
+  restartBtn.addEventListener('click', () => setSide(sideToTrain));
+
+})();
+</script>
+
+<script>
+(function(){
+  var btn = document.getElementById('darkToggle');
+  if (!btn) return;
+  btn.innerHTML = document.documentElement.classList.contains('dark')
+    ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+    : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  btn.addEventListener('click', function(){
+    var isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', isDark ? '1' : '0');
+    btn.innerHTML = isDark
+      ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+      : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -13,4 +13,7 @@ urlpatterns = [
 path("import-pgn/", views.import_pgn, name="import_pgn"),
     path("finali/", views.finali_list, name="finali_list"),
     path("finali/<int:capitolo_id>/", views.finali_chapter_detail, name="finali_chapter_detail"),
+    path("finali/<int:capitolo_id>/line/<int:line_num>/", views.finale_line_detail, name="finale_line_detail"),
+    path("finali/<int:capitolo_id>/line/<int:numero>/train/", views.finale_line_training, name="finale_line_training"),
+    path("errori/", views.errori, name="errori"),
 ]

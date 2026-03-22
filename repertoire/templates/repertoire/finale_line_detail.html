@@ -1,0 +1,798 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ capitolo.nome }} — Linea {{ line.numero }}</title>
+<!-- Anti-FOUC dark mode -->
+<script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .container {
+    display: flex;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+
+  .board-container {
+    padding: 20px;
+    background: #dfe3e6;
+  }
+
+  .board {
+    width: 480px;
+    height: 480px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    border: 4px solid #333;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: background 0.3s;
+  }
+
+  .light { background: #eeeed2; }
+  .dark { background: #769656; }
+
+  .highlight-from { background: #f6f669 !important; }
+  .highlight-to { background: #b3e283 !important; }
+
+  .sidebar {
+    width: 300px;
+    background: #fff;
+    border-left: 2px solid #ccc;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 15px;
+    background: #2c3e50;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+  }
+  .action-bar {
+    background: #f2f2f2;
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .stats-shell {
+    border-top: 1px solid #ddd;
+  }
+
+  table.move-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table.move-table tr:nth-child(even) { background: #f8f8f8; }
+
+  table.move-table td {
+    padding: 6px 10px;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  table.move-table td.number {
+    width: 30px;
+    font-weight: bold;
+    color: #666;
+  }
+
+  td.move {
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  td.move:hover {
+    background: #d0ebd0;
+  }
+
+  td.move.active {
+    background: #4CAF50;
+    color: white;
+  }
+
+  .move-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+  }
+
+  .controls {
+    border-top: 1px solid #ddd;
+    padding: 10px;
+    display: flex;
+    justify-content: space-around;
+    background: #fafafa;
+  }
+
+  .controls button {
+    font-size: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 8px;
+    transition: 0.2s;
+  }
+
+  .controls button:hover {
+    color: #2ecc71;
+  }
+  .ui-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+  }
+  .controls button .ui-icon {
+    width: 26px;
+    height: 26px;
+  }
+  #darkToggle {
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px;
+    border-radius:8px;
+    color:white;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #darkToggle .ui-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .btn-nav {
+    text-decoration: none;
+    background: transparent;
+    color: #8fd4a3;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(143, 212, 163, 0.42);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+  .btn-nav:hover {
+    background: rgba(143, 212, 163, 0.08);
+    color: #d7f7e1;
+    border-color: rgba(143, 212, 163, 0.7);
+    box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
+    transform: translateY(-1px);
+  }
+  .btn-nav.primary {
+    color: #8fc7ff;
+    border-color: rgba(143, 199, 255, 0.42);
+  }
+  .btn-nav.primary:hover {
+    background: rgba(143, 199, 255, 0.08);
+    color: #dcedff;
+    border-color: rgba(143, 199, 255, 0.72);
+    box-shadow: 0 10px 24px rgba(80,145,255,0.12), 0 0 18px rgba(80,145,255,0.12);
+  }
+
+  .board-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .rank-labels {
+    position: absolute;
+    top: 0;
+    left: -20px;
+    height: 100%;
+    width: 20px;
+    display: grid;
+    grid-template-rows: repeat(8, 1fr);
+    justify-items: center;
+    align-items: center;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+  }
+
+  .file-labels {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    justify-items: center;
+    align-items: center;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+  }
+
+  .cell.highlighted {
+    box-shadow: inset 0 0 0 6px rgba(255, 215, 0, 0.6);
+  }
+
+  #arrowLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ── Dark mode ── */
+  html.dark body           { background: #121212; color: #e0e0e0; transition: background .25s, color .25s; }
+  html.dark .sidebar       { background: #1e1e2e; border-left-color: #444; }
+  html.dark .sidebar-header { background: #0d1117; }
+  html.dark .board-container { background: #2a2a3a; }
+  html.dark table.move-table tr:nth-child(even) { background: #2a2a3a; }
+  html.dark td.move        { color: #90caf9; }
+  html.dark td.move:hover  { background: #1a2a1a; }
+  html.dark td.move.active { background: #1565c0; color: white; }
+  html.dark td.number      { color: #aaa; }
+  html.dark .move-list-container { background: #1e1e2e; }
+  html.dark .controls      { background: #1a1a2e; border-top-color: #444; }
+  html.dark .controls button { color: #ccc; }
+  html.dark .controls button:hover { color: #90caf9; }
+  html.dark .btn-nav       { background: transparent; }
+  html.dark .action-bar    { background: #202833; border-bottom-color: #334155; }
+  html.dark .stats-shell   { border-top-color: #334155; }
+  html.dark .rank-labels,
+  html.dark .file-labels { color: #f8fafc; }
+
+  .header-bar {
+    width: 100%;
+    background: #2c3e50;
+    color: white;
+    padding: 10px 25px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+  }
+  html.dark .header-bar { background: #0d1117; }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .breadcrumb-header a {
+    text-decoration: none;
+    color: #a5d6a7;
+    font-weight: 600;
+  }
+  .breadcrumb-header a:hover {
+    color: #81c784;
+    text-decoration: underline;
+  }
+  .breadcrumb-header span {
+    color: #ddd;
+  }
+
+  .container {
+    margin-top: 70px;
+  }
+</style>
+</head>
+<body>
+{% include "repertoire/includes/icon_sprite.html" %}
+
+<header class="header-bar">
+  <div class="header-content">
+    <div class="breadcrumb-header">
+      <a href="{% url 'finali_list' %}">Finali</a> ›
+      <a href="{% url 'finali_chapter_detail' capitolo.id %}">{{ capitolo.nome }}</a>
+      {% if line %}
+        › <span>Linea {{ line.numero }}</span>
+      {% endif %}
+    </div>
+    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="board-container">
+    <div style="display:flex;align-items:flex-start;gap:8px;">
+      <div class="board-wrapper">
+        <canvas id="arrowLayer" width="480" height="480"></canvas>
+        <div class="board" id="board"></div>
+        <div class="rank-labels">
+          {% for i in "87654321" %}<div>{{ i }}</div>{% endfor %}
+        </div>
+        <div class="file-labels">
+          {% for i in "abcdefgh" %}<div>{{ i }}</div>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      {{ capitolo.nome }} — Linea {{ line_position }} di {{ total_lines }}
+      <div style="font-size:14px; font-weight:normal; color:#a5d6a7; margin-top:4px;">
+        Completata {{ line.completamenti }} volte
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <a href="{% url 'finali_chapter_detail' capitolo.id %}" class="btn-nav">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg> Torna al capitolo
+      </a>
+      <a href="{% url 'finale_line_training' capitolo.id line.numero %}" class="btn-nav primary">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg> Train
+      </a>
+    </div>
+
+    {% if prev_line or next_line %}
+    <div class="action-bar">
+      {% if prev_line %}
+        <a href="{% url 'finale_line_detail' capitolo.id prev_line.numero %}" class="btn-nav">
+          <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg> Linea {{ prev_line.numero }}
+        </a>
+      {% else %}<span></span>{% endif %}
+      {% if next_line %}
+        <a href="{% url 'finale_line_detail' capitolo.id next_line.numero %}" class="btn-nav">
+          Linea {{ next_line.numero }} <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>
+        </a>
+      {% else %}<span></span>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="move-list-container">
+      <table class="move-table" id="moveTable"><tbody></tbody></table>
+    </div>
+
+    <div class="controls">
+      <button id="firstMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-skip-start"></use></svg></button>
+      <button id="prevMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></button>
+      <button id="nextMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></button>
+      <button id="lastMove"><svg class="ui-icon" aria-hidden="true"><use href="#icon-skip-end"></use></svg></button>
+      <button id="flipBoard" title="Ruota la scacchiera"><svg class="ui-icon" aria-hidden="true"><use href="#icon-rotate"></use></svg></button>
+    </div>
+
+    <div class="controls" style="gap:8px;padding:8px 12px;">
+      <button id="loopBtn" title="Riproduci in loop" style="font-size:13px;font-weight:600;padding:5px 12px;border:1px solid #8fd4a3;border-radius:16px;color:#8fd4a3;background:transparent;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+        <svg class="ui-icon" aria-hidden="true" style="width:18px;height:18px;"><use href="#icon-play"></use></svg> Loop
+      </button>
+      <button id="loopStop" title="Ferma loop" style="display:none;font-size:13px;font-weight:600;padding:5px 12px;border:1px solid #f5a0a5;border-radius:16px;color:#f5a0a5;background:transparent;cursor:pointer;align-items:center;gap:6px;">
+        &#9632; Stop
+      </button>
+      <select id="loopSpeed" style="font-size:13px;padding:4px 8px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;">
+        <option value="1500">Lenta</option>
+        <option value="900" selected>Normale</option>
+        <option value="400">Veloce</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+const boardEl = document.getElementById('board');
+const files = ['a','b','c','d','e','f','g','h'];
+let ranks = [8,7,6,5,4,3,2,1];
+const cells = {};
+for (let r=0; r<8; r++) {
+  for (let f=0; f<8; f++) {
+    const id = files[f] + ranks[r];
+    const d = document.createElement('div');
+    d.className = 'cell ' + ((r+f)%2===0 ? 'light' : 'dark');
+    d.id = id;
+    boardEl.appendChild(d);
+    cells[id] = d;
+  }
+}
+for (const id in cells) {
+  cells[id].addEventListener("contextmenu", e => {
+    e.preventDefault();
+    cells[id].classList.toggle("highlighted");
+  });
+}
+
+const pieceImgs = {
+  w: {
+    P: "{% static 'vendor/chessboardjs/img/wP.png' %}",
+    N: "{% static 'vendor/chessboardjs/img/wN.png' %}",
+    B: "{% static 'vendor/chessboardjs/img/wB.png' %}",
+    R: "{% static 'vendor/chessboardjs/img/wR.png' %}",
+    Q: "{% static 'vendor/chessboardjs/img/wQ.png' %}",
+    K: "{% static 'vendor/chessboardjs/img/wK.png' %}",
+  },
+  b: {
+    P: "{% static 'vendor/chessboardjs/img/bP.png' %}",
+    N: "{% static 'vendor/chessboardjs/img/bN.png' %}",
+    B: "{% static 'vendor/chessboardjs/img/bB.png' %}",
+    R: "{% static 'vendor/chessboardjs/img/bR.png' %}",
+    Q: "{% static 'vendor/chessboardjs/img/bQ.png' %}",
+    K: "{% static 'vendor/chessboardjs/img/bK.png' %}",
+  }
+};
+
+// ── Parsing FEN → dizionario board ──────────────────────────────────────────
+function fenToBoard(fen) {
+  const placement = fen.split(' ')[0];
+  const rows = placement.split('/');
+  const result = {};
+  const pieceMap = {p:'P', r:'R', n:'N', b:'B', q:'Q', k:'K'};
+  rows.forEach((row, ri) => {
+    const rank = 8 - ri;
+    let fi = 0;
+    for (const ch of row) {
+      if ('12345678'.includes(ch)) {
+        fi += parseInt(ch);
+      } else {
+        const color = ch === ch.toUpperCase() ? 'w' : 'b';
+        const piece = pieceMap[ch.toLowerCase()] || ch.toUpperCase();
+        result[files[fi] + rank] = color + piece;
+        fi++;
+      }
+    }
+  });
+  return result;
+}
+
+const fen_start = `{{ line.fen_start|escapejs }}`;
+let board = fenToBoard(fen_start);
+let enPassantSquare = null;
+
+var flipped = {{ line.flipped|default_if_none:False|yesno:"true,false"|lower }};
+const flipKey = `flip:finaleline:{{ line.id }}`;
+const savedFlip = localStorage.getItem(flipKey);
+if (savedFlip !== null) flipped = (savedFlip === '1');
+
+function updateLabelsRotation() {
+  const wrapper = document.querySelector(".board-wrapper");
+  const rankContainer = wrapper.querySelector(".rank-labels");
+  const fileContainer = wrapper.querySelector(".file-labels");
+
+  const angle = flipped ? "180deg" : "0deg";
+  boardEl.style.transform = `rotate(${angle})`;
+  boardEl.querySelectorAll("img").forEach(img =>
+    img.style.transform = `rotate(${angle})`
+  );
+
+  const rankOrder = flipped ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+  const fileOrder = flipped ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+
+  rankContainer.innerHTML = "";
+  rankOrder.forEach(r => {
+    const div = document.createElement("div");
+    div.textContent = r;
+    rankContainer.appendChild(div);
+  });
+
+  fileContainer.innerHTML = "";
+  fileOrder.forEach(f => {
+    const div = document.createElement("div");
+    div.textContent = f;
+    fileContainer.appendChild(div);
+  });
+
+  rankContainer.style.transform = "rotate(0deg)";
+  fileContainer.style.transform = "rotate(0deg)";
+}
+
+function draw() {
+  ranks = flipped ? [1,2,3,4,5,6,7,8] : [8,7,6,5,4,3,2,1];
+  for (const sq in cells) {
+    const piece = board[sq];
+    cells[sq].innerHTML = piece
+      ? `<img src="${pieceImgs[piece[0]][piece[1]]}" style="width:90%;height:90%;">`
+      : "";
+  }
+  updateLabelsRotation();
+}
+
+draw();
+
+function cleanPGN(pgn){
+  return pgn.replace(/{[^}]*}/g,'')
+            .replace(/\([^)]*\)/g,'')
+            .replace(/\$\d+/g,'')
+            .replace(/\d+\.(\.\.)?/g,' ')
+            .replace(/[+#!?]/g,'')
+            .trim()
+            .split(/\s+/)
+            .filter(x=>x && !['1-0','0-1','1/2-1/2','*'].includes(x));
+}
+const moves = cleanPGN(`{{ line.pgn|escapejs }}`);
+let idx=0, side='w';
+
+// Determina il turno dal FEN
+const fenTurn = fen_start.split(' ')[1] || 'w';
+side = fenTurn;
+
+const table = document.getElementById('moveTable').querySelector('tbody');
+for(let i=0;i<moves.length;i+=2){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td class="number">${Math.floor(i/2)+1}</td>
+                <td class="move" data-index="${i}">${moves[i]||''}</td>
+                <td class="move" data-index="${i+1}">${moves[i+1]||''}</td>`;
+  table.appendChild(tr);
+}
+
+document.querySelectorAll('.move').forEach(td=>{
+  td.addEventListener('click',()=>{ jumpTo(parseInt(td.dataset.index)+1); });
+});
+function highlightMoves(){document.querySelectorAll('.move').forEach((m,i)=>m.classList.toggle('active',i===idx-1));}
+function clearCellHighlights(){for(const sq in cells)cells[sq].classList.remove('highlight-from','highlight-to');}
+function highlightCells(from,to){clearCellHighlights();if(cells[from])cells[from].classList.add('highlight-from');if(cells[to])cells[to].classList.add('highlight-to');}
+
+function resetBoard(){board=fenToBoard(fen_start);draw();idx=0;side=fenTurn;enPassantSquare=null;highlightMoves();clearCellHighlights();}
+function nextMove(){if(idx<moves.length){applySAN(moves[idx],side);idx++;side=side==='w'?'b':'w';highlightMoves();}}
+function prevMove(){if(idx>0){jumpTo(idx-1);}}
+function jumpTo(n){resetBoard();for(let i=0;i<n;i++)nextMove();}
+
+function findSource(piece, to, capture, side, move) {
+  const f = ['a','b','c','d','e','f','g','h'];
+  const tFile = to[0], tRank = +to[1];
+  const tx = f.indexOf(tFile), ty = tRank;
+  let list = [];
+
+  let fileHint = null, rankHint = null;
+  const match = move.match(/^[KQRBN]?([a-h1-8]?)(x?[a-h][1-8])/);
+  if (match) {
+    const hint = match[1];
+    if (/[a-h]/.test(hint)) fileHint = hint;
+    if (/[1-8]/.test(hint)) rankHint = hint;
+  }
+
+  const isClear = (fx, fy, tx, ty, dx, dy) => {
+    let x = fx + dx, y = fy + dy;
+    while (x !== tx || y !== ty) {
+      if (board[f[x] + y]) return false;
+      x += dx; y += dy;
+    }
+    return true;
+  };
+
+  for (const s in board) {
+    const p = board[s];
+    if (!p) continue;
+    const c = p[0], type = p[1];
+    if (c !== side || type !== piece) continue;
+
+    const fx = f.indexOf(s[0]), fy = +s[1], dx = tx - fx, dy = ty - fy;
+
+    if (piece === 'P') {
+      if (side === 'w') {
+        if (!capture && dx === 0 && dy === 1 && !board[to]) list.push(s);
+        if (!capture && dx === 0 && dy === 2 && fy === 2 && !board[to] && !board[s[0] + 3]) list.push(s);
+        if (capture && Math.abs(dx) === 1 && dy === 1) list.push(s);
+      } else {
+        if (!capture && dx === 0 && dy === -1 && !board[to]) list.push(s);
+        if (!capture && dx === 0 && dy === -2 && fy === 7 && !board[to] && !board[s[0] + 6]) list.push(s);
+        if (capture && Math.abs(dx) === 1 && dy === -1) list.push(s);
+      }
+    }
+
+    if (piece === 'N' && [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].some(([a,b]) => a===dx && b===dy))
+      list.push(s);
+    if (piece === 'B' && Math.abs(dx) === Math.abs(dy) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy)))
+      list.push(s);
+    if (piece === 'R' && (dx===0 || dy===0) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy)))
+      list.push(s);
+    if (piece === 'Q' && (
+        (Math.abs(dx) === Math.abs(dy) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy))) ||
+        ((dx===0 || dy===0) && isClear(fx, fy, tx, ty, Math.sign(dx), Math.sign(dy)))
+      )) list.push(s);
+    if (piece === 'K' && Math.abs(dx)<=1 && Math.abs(dy)<=1)
+      list.push(s);
+  }
+
+  if (fileHint) list = list.filter(sq => sq[0] === fileHint);
+  if (rankHint) list = list.filter(sq => sq[1] === rankHint);
+
+  return list[0];
+}
+
+function applySAN(move, side){
+  const pawnDir=side==='w'?1:-1;let from=null,to=null;
+  if(move==='O-O'||move==='0-0'){if(side==='w'){from='e1';to='g1';board.g1='wK';delete board.e1;board.f1='wR';delete board.h1;}
+  else{from='e8';to='g8';board.g8='bK';delete board.e8;board.f8='bR';delete board.h8;}draw();highlightCells(from,to);return;}
+  if(move==='O-O-O'||move==='0-0-0'){if(side==='w'){from='e1';to='c1';board.c1='wK';delete board.e1;board.d1='wR';delete board.a1;}
+  else{from='e8';to='c8';board.c8='bK';delete board.e8;board.d8='bR';delete board.a8;}draw();highlightCells(from,to);return;}
+
+  let promotion=null;
+  if(move.includes('=')){promotion=move.split('=')[1][0];move=move.split('=')[0];}
+
+  const piece=move.match(/^[KQRBN]/)?move[0]:'P';
+  const capture=move.includes('x');
+  to=move.slice(-2);
+  const fromSq=findSource(piece, to, capture, side, move);if(!fromSq)return;
+  from=fromSq;
+
+  if(piece==='P'&&to===enPassantSquare&&capture){const dir=side==='w'?-1:1;const target=to[0]+(parseInt(to[1])+dir);delete board[target];}
+  enPassantSquare=null;
+
+  if(piece==='P'){const fy=parseInt(from[1]);const ty=parseInt(to[1]);if(Math.abs(ty-fy)===2){const mid=to[0]+(fy+pawnDir);enPassantSquare=mid;}}
+  if(capture&&board[to])delete board[to];
+
+  board[to]=promotion?side+promotion:side+piece;
+  delete board[from];
+  draw();highlightCells(from,to);
+}
+
+document.getElementById('nextMove').onclick=()=>{nextMove();};
+document.getElementById('prevMove').onclick=()=>{prevMove();};
+document.getElementById('firstMove').onclick=()=>{jumpTo(0);};
+document.getElementById('lastMove').onclick=()=>{jumpTo(moves.length);};
+
+document.addEventListener('keydown', function(e) {
+  switch (e.key) {
+    case 'ArrowRight': e.preventDefault(); nextMove(); break;
+    case 'ArrowLeft':  e.preventDefault(); prevMove(); break;
+    case 'Home':       e.preventDefault(); jumpTo(0); break;
+    case 'End':        e.preventDefault(); jumpTo(moves.length); break;
+  }
+});
+
+// ── Frecce canvas ────────────────────────────────────────────────────────────
+const arrowCanvas = document.getElementById("arrowLayer");
+const ctx = arrowCanvas.getContext("2d");
+let arrowStart = null;
+let arrows = [];
+const size = 480 / 8;
+
+function squareCenter(squareId) {
+  const file = files.indexOf(squareId[0]);
+  const rank = parseInt(squareId[1]);
+  let x = file * size + size / 2;
+  let y = (8 - rank) * size + size / 2;
+  if (flipped) { x = 480 - x; y = 480 - y; }
+  return [x, y];
+}
+
+function drawArrow(from, to, color = "rgba(255,0,0,0.85)") {
+  const existingIndex = arrows.findIndex(a => a.from === from && a.to === to && a.color === color);
+  if (existingIndex !== -1) { arrows.splice(existingIndex, 1); redrawArrows(); return; }
+  arrows.push({ from, to, color });
+  redrawArrows();
+}
+
+function redrawArrows() {
+  ctx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height);
+  arrows.forEach(({ from, to, color }) => {
+    const [x1, y1] = squareCenter(from);
+    const [x2, y2] = squareCenter(to);
+    const dx = x2 - x1, dy = y2 - y1;
+    const angle = Math.atan2(dy, dx);
+    const headLength = 25, lineWidth = 12, shorten = 20;
+    const endX = x2 - Math.cos(angle) * shorten;
+    const endY = y2 - Math.sin(angle) * shorten;
+    ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(endX, endY); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI/6), y2 - headLength * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI/6), y2 - headLength * Math.sin(angle + Math.PI/6));
+    ctx.closePath(); ctx.fill();
+  });
+}
+
+function clearArrows() { arrows = []; ctx.clearRect(0, 0, arrowCanvas.width, arrowCanvas.height); }
+function clearAllHighlights() { clearArrows(); for (const id in cells) cells[id].classList.remove("highlighted"); }
+
+arrowCanvas.addEventListener("contextmenu", e => e.preventDefault());
+boardEl.addEventListener("mousedown", e => {
+  if (e.button !== 2) return;
+  const target = Object.values(cells).find(c => c.contains(e.target));
+  if (target) arrowStart = target.id;
+});
+boardEl.addEventListener("mouseup", e => {
+  if (e.button !== 2 || !arrowStart) return;
+  const target = Object.values(cells).find(c => c.contains(e.target));
+  if (target && target.id !== arrowStart) drawArrow(arrowStart, target.id);
+  arrowStart = null;
+});
+
+document.getElementById("flipBoard").addEventListener("click", () => {
+  flipped = !flipped;
+  localStorage.setItem(flipKey, flipped ? "1" : "0");
+  clearAllHighlights();
+  draw();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "c") clearAllHighlights();
+  if (e.key.toLowerCase() === "f") { flipped = !flipped; localStorage.setItem(flipKey, flipped ? "1" : "0"); draw(); }
+});
+
+boardEl.addEventListener("mousedown", e => {
+  if (e.button === 0) {
+    const clickedCell = Object.values(cells).find(c => c.contains(e.target));
+    if (clickedCell || e.target === boardEl) clearAllHighlights();
+  }
+});
+
+// ── Navigazione con Tab ──────────────────────────────────────────────────────
+const nextUrl = "{% if next_line %}{% url 'finale_line_detail' capitolo.id next_line.numero %}{% else %}null{% endif %}";
+const prevUrl = "{% if prev_line %}{% url 'finale_line_detail' capitolo.id prev_line.numero %}{% else %}null{% endif %}";
+
+document.addEventListener("keydown", function (event) {
+  if (event.key !== "Tab") return;
+  event.preventDefault();
+  if (!event.shiftKey && nextUrl !== "null") window.location.href = nextUrl;
+  if (event.shiftKey && prevUrl !== "null") window.location.href = prevUrl;
+});
+
+// ── Loop autoplay ─────────────────────────────────────────────────────────────
+let loopTimer = null;
+
+function startLoop() {
+  if (loopTimer) return;
+  document.getElementById('loopBtn').style.display  = 'none';
+  document.getElementById('loopStop').style.display = 'inline-flex';
+  function step() {
+    const speed = parseInt(document.getElementById('loopSpeed').value);
+    if (idx >= moves.length) {
+      loopTimer = setTimeout(() => { jumpTo(0); loopTimer = setTimeout(tick, speed); }, speed * 1.5);
+    } else {
+      nextMove();
+      loopTimer = setTimeout(tick, speed);
+    }
+  }
+  function tick() { loopTimer = null; step(); }
+  step();
+}
+
+function stopLoop() {
+  if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; }
+  document.getElementById('loopBtn').style.display  = 'inline-flex';
+  document.getElementById('loopStop').style.display = 'none';
+}
+
+document.getElementById('loopBtn').addEventListener('click', startLoop);
+document.getElementById('loopStop').addEventListener('click', stopLoop);
+</script>
+
+<script>
+(function(){
+  var btn = document.getElementById('darkToggle');
+  if (!btn) return;
+  btn.innerHTML = document.documentElement.classList.contains('dark')
+    ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+    : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  btn.addEventListener('click', function(){
+    var isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', isDark ? '1' : '0');
+    btn.innerHTML = isDark
+      ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+      : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  });
+})();
+</script>
+</body>
+</html>

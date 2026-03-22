@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.db.models import Sum, Count
 from django.db.models.functions import Length
 
-from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione
+from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione, FinaleLine
 
 
 # ── Move-tree helpers ──────────────────────────────────────────────────────────
@@ -285,10 +285,52 @@ def finali_list(request):
     return render(request, 'repertoire/finali_list.html', {'capitoli': capitoli})
 
 
+def errori(request):
+    return render(request, 'repertoire/errori.html')
+
+
 def finali_chapter_detail(request, capitolo_id):
     capitolo  = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
     posizioni = capitolo.posizioni.all()
+    linee     = list(capitolo.linee.all())
+    completed = sum(1 for l in linee if l.completamenti > 0)
     return render(request, 'repertoire/finali_chapter_detail.html', {
-        'capitolo':  capitolo,
-        'posizioni': posizioni,
+        'capitolo':        capitolo,
+        'posizioni':       posizioni,
+        'linee':           linee,
+        'completed_lines': completed,
+    })
+
+
+def finale_line_detail(request, capitolo_id, line_num):
+    capitolo = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
+    linee    = list(FinaleLine.objects.filter(capitolo=capitolo).order_by('numero', 'id'))
+
+    if not (1 <= line_num <= len(linee)):
+        return render(request, '404.html', status=404)
+
+    line      = linee[line_num - 1]
+    prev_line = linee[line_num - 2] if line_num > 1 else None
+    next_line = linee[line_num]     if line_num < len(linee) else None
+
+    return render(request, 'repertoire/finale_line_detail.html', {
+        'capitolo':      capitolo,
+        'line':          line,
+        'prev_line':     prev_line,
+        'next_line':     next_line,
+        'total_lines':   len(linee),
+        'line_position': line_num,
+    })
+
+
+def finale_line_training(request, capitolo_id, numero):
+    capitolo  = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
+    line      = get_object_or_404(FinaleLine, capitolo=capitolo, numero=numero)
+    prev_line = FinaleLine.objects.filter(capitolo=capitolo, numero__lt=numero).order_by('-numero').first()
+    next_line = FinaleLine.objects.filter(capitolo=capitolo, numero__gt=numero).order_by('numero').first()
+    return render(request, 'repertoire/finale_line_training.html', {
+        'capitolo': capitolo,
+        'line':     line,
+        'prev_line': prev_line,
+        'next_line': next_line,
     })
