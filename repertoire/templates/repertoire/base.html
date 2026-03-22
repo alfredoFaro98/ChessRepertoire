@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Chess Repertoire{% endblock %}</title>
   {% load static %}
+  <link rel="icon" type="image/png" href="{% static 'repertoire/img/header_logo.png' %}">
   <script>
     (function() {
       if (localStorage.getItem('darkMode') !== '0') {
@@ -191,9 +192,7 @@
     html.dark .card p { color: var(--text-muted) !important; }
     html.dark .board-container { background: #202a35 !important; }
     html.dark .line-count { color: var(--text-muted) !important; }
-    html.dark .diff-filter { background: #22303c !important; color: var(--text-muted) !important; }
-    html.dark .diff-filter.active { background: var(--accent) !important; color: #08120f !important; }
-    html.dark .mosse { color: #81c7b2 !important; }
+html.dark .mosse { color: #81c7b2 !important; }
     html.dark .tree a { color: var(--text) !important; }
     html.dark .alert-error { background: #311a1a !important; color: #fca5a5 !important; border-color: #7f1d1d !important; }
     html.dark .alert-success { background: #10261d !important; color: #9fe3bd !important; border-color: #1f5f46 !important; }
@@ -373,6 +372,10 @@
     <a class="nav-link" href="{% url 'home' %}">
       <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
       <span>Aperture</span>
+    </a>
+    <a class="nav-link" href="{% url 'finali_list' %}">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+      <span>Finali</span>
     </a>
     <a class="nav-link" href="{% url 'import_pgn' %}">
       <svg class="ui-icon" aria-hidden="true"><use href="#icon-upload"></use></svg>

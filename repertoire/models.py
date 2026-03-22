@@ -1,5 +1,4 @@
 from django.db import models
-from datetime import date, timedelta
 
 DIFFICOLTA_CHOICES = [
     ('facile',    'Facile'),
@@ -30,12 +29,6 @@ class OpeningLine(models.Model):
 
     completamenti = models.PositiveIntegerField(default=0)
     difficolta    = models.CharField(max_length=20, choices=DIFFICOLTA_CHOICES, default='media', blank=True)
-
-    # SRS (Spaced Repetition System — algoritmo SM-2)
-    srs_interval    = models.IntegerField(default=1)
-    srs_easiness    = models.FloatField(default=2.5)
-    srs_repetitions = models.IntegerField(default=0)
-    srs_due_date    = models.DateField(null=True, blank=True)
 
     # ⬇️ gerarchia (varianti figlie)
     parent = models.ForeignKey(
@@ -80,38 +73,34 @@ class OpeningLine(models.Model):
             parent = parent.parent
         return d
 
-    def apply_sm2(self, quality):
-        """Applica l'algoritmo SM-2. quality: 0-5 (0-2 = fail, 3-5 = pass)."""
-        if quality < 3:
-            self.srs_repetitions = 0
-            self.srs_interval = 1
-        else:
-            if self.srs_repetitions == 0:
-                self.srs_interval = 1
-            elif self.srs_repetitions == 1:
-                self.srs_interval = 6
-            else:
-                self.srs_interval = round(self.srs_interval * self.srs_easiness)
-            self.srs_repetitions += 1
-            self.srs_easiness = max(
-                1.3,
-                self.srs_easiness + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)
-            )
-        self.srs_due_date = date.today() + timedelta(days=self.srs_interval)
-        self.completamenti += 1
-        self.save()
 
+# ── Finali ────────────────────────────────────────────────────────────────────
 
-class LineSession(models.Model):
-    """Singola sessione di allenamento su una linea."""
-    line         = models.ForeignKey(OpeningLine, on_delete=models.CASCADE, related_name='sessioni')
-    timestamp    = models.DateTimeField(auto_now_add=True)
-    quality      = models.IntegerField()          # 0-5 (SM-2 quality)
-    time_seconds = models.IntegerField(null=True, blank=True)
+class FinaleCapitolo(models.Model):
+    nome        = models.CharField(max_length=100, unique=True)
+    descrizione = models.TextField(blank=True, null=True)
+    ordine      = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ['-timestamp']
+        ordering = ['ordine', 'nome']
 
     def __str__(self):
-        return f"Sessione {self.line} — q={self.quality}"
+        return self.nome
+
+
+class FinalePosizione(models.Model):
+    capitolo    = models.ForeignKey(FinaleCapitolo, on_delete=models.CASCADE, related_name='posizioni')
+    titolo      = models.CharField(max_length=200)
+    fen         = models.TextField()
+    note        = models.TextField(blank=True, null=True)
+    difficolta  = models.CharField(max_length=20, choices=DIFFICOLTA_CHOICES, default='media')
+    ordine      = models.PositiveIntegerField(default=0)
+
+    completamenti = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['ordine', 'id']
+
+    def __str__(self):
+        return f"{self.capitolo.nome} – {self.titolo}"
 

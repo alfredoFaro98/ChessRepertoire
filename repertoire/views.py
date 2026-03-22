@@ -1,5 +1,5 @@
-import json
 import io
+import json
 import chess
 import chess.svg
 import chess.pgn
@@ -7,12 +7,37 @@ import re
 from datetime import date, timedelta
 
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.http import require_POST
-from django.db.models import Sum, Avg, Count
+from django.http import HttpResponse
+from django.db.models import Sum, Count
 from django.db.models.functions import Length
 
-from .models import OpeningRoot, OpeningLine, LineSession
+from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione
+
+
+# ── Move-tree helpers ──────────────────────────────────────────────────────────
+def _pgn_to_moves(pgn):
+    s = re.sub(r'\{[^}]*\}', '', pgn)
+    s = re.sub(r'\$\d+', '', s)
+    s = re.sub(r'\d+\.+', ' ', s)
+    s = re.sub(r'(1-0|0-1|1/2-1/2|\*)', '', s)
+    s = re.sub(r'[+#!?]', '', s)
+    return [m for m in s.split() if m]
+
+
+def _build_move_tree(lines):
+    root = {'n': '', 'c': [], 'l': None}
+    for line in lines:
+        moves = _pgn_to_moves(line.pgn)
+        node = root
+        for move in moves:
+            child = next((c for c in node['c'] if c['n'] == move), None)
+            if child is None:
+                child = {'n': move, 'c': [], 'l': None}
+                node['c'].append(child)
+            node = child
+        if moves:
+            node['l'] = {'id': line.root_id, 'num': line.numero}
+    return root
 
 
 # ── Lista aperture ─────────────────────────────────────────────────────────────
@@ -58,6 +83,7 @@ def opening_list(request):
                 colors={"square light": "#eeeed2", "square dark": "#769656"},
             ),
             "num_linee": opening.num_linee,
+            "studied_linee": opening.linee.filter(completamenti__gt=0).count(),
         })
 
     return render(request, "repertoire/opening_list.html", {
@@ -78,19 +104,23 @@ def opening_list(request):
 # ── Dettaglio apertura ────────────────────────────────────────────────────────
 def opening_detail(request, opening_id):
     opening = get_object_or_404(OpeningRoot, pk=opening_id)
-    all_lines = (
+    all_lines = list(
         OpeningLine.objects
         .filter(root=opening)
         .annotate(pgn_len=Length('pgn'))
         .order_by('pgn_len')
     )
+    tree_json = json.dumps(_build_move_tree(all_lines))
+    completed  = sum(1 for l in all_lines if l.completamenti > 0)
     return render(request, "repertoire/opening_detail.html", {
-        "opening":   opening,
-        "all_lines": all_lines,
+        "opening":        opening,
+        "all_lines":      all_lines,
+        "tree_json":      tree_json,
+        "completed_lines": completed,
     })
 
 
-# ── Dettaglio linea (con statistiche) ─────────────────────────────────────────
+# ── Dettaglio linea ────────────────────────────────────────────────────────────
 def line_detail(request, root_id, line_num):
     root  = get_object_or_404(OpeningRoot, id=root_id)
     lines = list(OpeningLine.objects.filter(root=root).order_by('numero', 'id'))
@@ -102,30 +132,13 @@ def line_detail(request, root_id, line_num):
     prev_line = lines[line_num - 2] if line_num > 1 else None
     next_line = lines[line_num]     if line_num < len(lines) else None
 
-    # Statistiche sessioni
-    avg_quality = line.sessioni.aggregate(avg=Avg('quality'))['avg']
-    avg_time    = line.sessioni.filter(time_seconds__isnull=False).aggregate(avg=Avg('time_seconds'))['avg']
-
-    # Chart: ultimi 14 giorni
-    today = date.today()
-    chart_labels, chart_data = [], []
-    for i in range(13, -1, -1):
-        d = today - timedelta(days=i)
-        chart_labels.append(d.strftime('%d/%m'))
-        chart_data.append(line.sessioni.filter(timestamp__date=d).count())
-
     return render(request, "repertoire/line_detail.html", {
-        "root":           root,
-        "line":           line,
-        "prev_line":      prev_line,
-        "next_line":      next_line,
-        "total_lines":    len(lines),
-        "line_position":  line_num,
-        "avg_quality":    round(avg_quality, 1) if avg_quality else None,
-        "avg_time":       round(avg_time)        if avg_time    else None,
-        "chart_labels":   chart_labels,
-        "chart_data":     chart_data,
-        "sessions_count": line.sessioni.count(),
+        "root":          root,
+        "line":          line,
+        "prev_line":     prev_line,
+        "next_line":     next_line,
+        "total_lines":   len(lines),
+        "line_position": line_num,
     })
 
 
@@ -155,35 +168,6 @@ def line_training(request, root_id, numero):
     return render(request, "repertoire/line_training.html", {
         "line": line, "prev_line": prev_line, "next_line": next_line,
     })
-
-
-# ── Completamento linea (SM-2 + sessione) ─────────────────────────────────────
-@require_POST
-def incrementa_completamenti(request, line_id):
-    try:
-        line = OpeningLine.objects.get(pk=line_id)
-        try:
-            body         = json.loads(request.body)
-            quality      = int(body.get("quality", 3))
-            time_seconds = body.get("time_seconds")
-            if time_seconds is not None:
-                time_seconds = int(time_seconds)
-        except Exception:
-            quality      = 3
-            time_seconds = None
-
-        quality = max(0, min(5, quality))
-        line.apply_sm2(quality)
-        LineSession.objects.create(line=line, quality=quality, time_seconds=time_seconds)
-
-        return JsonResponse({
-            "success":      True,
-            "totale":       line.completamenti,
-            "srs_due_date": str(line.srs_due_date),
-            "srs_interval": line.srs_interval,
-        })
-    except OpeningLine.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Linea non trovata"}, status=404)
 
 
 # ── Import PGN ────────────────────────────────────────────────────────────────
@@ -264,34 +248,21 @@ def import_pgn(request):
 
 # ── Dashboard Home ────────────────────────────────────────────────────────────
 def home(request):
-    today = date.today()
     filtro = request.GET.get('filtro', 'tutti')
-
-    due_lines = (
-        OpeningLine.objects
-        .filter(srs_due_date__lte=today)
-        .select_related('root')
-        .order_by('srs_due_date', 'root__nome', 'numero')
-    )
-    if filtro == 'attacchi':
-        due_lines = due_lines.filter(root__difesa=False)
-    elif filtro == 'difese':
-        due_lines = due_lines.filter(root__difesa=True)
-    else:
+    if filtro not in ('attacchi', 'difese'):
         filtro = 'tutti'
 
     total_lines       = OpeningLine.objects.count()
-    new_lines_count   = OpeningLine.objects.filter(srs_due_date__isnull=True).count()
     lines_studied     = OpeningLine.objects.filter(completamenti__gt=0).count()
     total_completions = OpeningLine.objects.aggregate(t=Sum('completamenti'))['t'] or 0
 
-    openings_progress = []
     openings = OpeningRoot.objects.all()
     if filtro == 'attacchi':
         openings = openings.filter(difesa=False)
     elif filtro == 'difese':
         openings = openings.filter(difesa=True)
 
+    openings_progress = []
     for op in openings:
         total   = op.linee.count()
         studied = op.linee.filter(completamenti__gt=0).count()
@@ -300,12 +271,24 @@ def home(request):
     openings_progress.sort(key=lambda x: -x['pct'])
 
     return render(request, 'repertoire/home.html', {
-        'due_lines':         due_lines,
-        'new_lines_count':   new_lines_count,
         'total_lines':       total_lines,
         'lines_studied':     lines_studied,
         'total_completions': total_completions,
         'openings_progress': openings_progress,
-        'today':             today,
         'filtro':            filtro,
+    })
+
+
+# ── Finali ────────────────────────────────────────────────────────────────────
+def finali_list(request):
+    capitoli = FinaleCapitolo.objects.prefetch_related('posizioni').all()
+    return render(request, 'repertoire/finali_list.html', {'capitoli': capitoli})
+
+
+def finali_chapter_detail(request, capitolo_id):
+    capitolo  = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
+    posizioni = capitolo.posizioni.all()
+    return render(request, 'repertoire/finali_chapter_detail.html', {
+        'capitolo':  capitolo,
+        'posizioni': posizioni,
     })

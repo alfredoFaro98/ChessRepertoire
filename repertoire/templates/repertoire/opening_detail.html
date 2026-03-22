@@ -1,170 +1,359 @@
 {% extends "repertoire/base.html" %}
+{% block title %}{{ opening.nome }} — Chess Repertoire{% endblock %}
 {% block content %}
 <style>
-.tree, .tree ul {
-  list-style: none;
-  margin: 0;
-  padding-left: 20px;
-}
+.page { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
 
-.line-node {
-  margin: 4px 0;
-  position: relative;
-}
+.page-title { font-size: 24px; font-weight: 800; margin: 0 0 4px; }
+.page-desc  { font-size: 14px; color: var(--text-muted); margin: 0 0 20px; }
 
-.nested {
-  display: none;
-  margin-left: 20px;
-}
-
-.nested.show { display: block; }
-
-.tree a {
-  text-decoration: none;
-  color: #2c3e50;
-}
-
-.tree a:hover { color: #27ae60; }
-
-.mosse {
-  font-family: monospace;
-  color: #16a085;
-}
-
-.badge-count {
-  display: inline-block;
-  min-width: 22px;
-  text-align: center;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #fff;
-  padding: 2px 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-  transition: background 0.3s ease, transform 0.2s ease;
-}
-.badge-count.low { background: #c62828; }
-.badge-count.medium { background: #f9a825; }
-.badge-count.high { background: #43a047; }
-.badge-count.top { background: #7b1fa2; }
-.badge-count:hover { transform: scale(1.15); }
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.section-title .ui-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--accent);
-}
+/* ── Toolbar ── */
 .toolbar {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  flex-wrap:wrap;
-  gap:10px;
-  margin-bottom:12px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
 }
-.toolbar-actions {
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
+.sort-btn {
+  padding: 5px 14px; border: 1px solid var(--border);
+  border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600;
+  background: var(--bg-card); color: var(--text-muted);
+  transition: background .15s, color .15s, border-color .15s;
 }
+.sort-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sort-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+.dir-btn {
+  padding: 5px 12px; border: 1px solid var(--border);
+  border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 700;
+  background: var(--bg-card); color: var(--text-muted);
+  transition: background .15s, color .15s, border-color .15s; min-width: 42px;
+}
+.dir-btn.active { background: #334155; color: #e2e8f0; border-color: #475569; }
+html:not(.dark) .dir-btn.active { background: #e2e8f0; color: #1e293b; border-color: #94a3b8; }
+
 .download-link {
-  background: transparent;
-  color: #8fd4a3;
-  border: 1px solid rgba(143, 212, 163, 0.42);
-  padding:6px 12px;
-  border-radius:10px;
-  font-size:13px;
-  font-weight:600;
-  text-decoration:none;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  background: transparent; color: #8fd4a3;
+  border: 1px solid rgba(143,212,163,0.42);
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  transition: all .2s;
 }
 .download-link:hover {
-  color: #d7f7e1;
-  background: rgba(143, 212, 163, 0.08);
-  border-color: rgba(143, 212, 163, 0.7);
-  box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
-  transform: translateY(-1px);
+  color: #d7f7e1; background: rgba(143,212,163,0.08);
+  border-color: rgba(143,212,163,0.7);
 }
+
+/* ── Lista linee ── */
+.linee-list { display: flex; flex-direction: column; gap: 8px; }
+
+.linea-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: var(--text);
+  transition: box-shadow .18s, border-color .18s, transform .18s;
+}
+.linea-card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,0.11);
+  border-color: var(--accent);
+  transform: translateX(2px);
+  color: var(--text);
+}
+
+.linea-num {
+  font-size: 13px; font-weight: 700; color: var(--text-muted);
+  min-width: 28px; text-align: center; flex-shrink: 0;
+}
+
+.linea-pgn {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.completamenti-badge {
+  min-width: 28px; height: 28px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; flex-shrink: 0;
+}
+.c-zero   { background: #3d2020; color: #c4898a; }
+.c-low    { background: #3d3020; color: #c4a96a; }
+.c-mid    { background: #1e3228; color: #6dba84; }
+.c-high   { background: #1e2840; color: #7da8d8; }
+
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
 </style>
 
-<h2>{{ opening.nome }}</h2>
-<p>{{ opening.descrizione }}</p>
-
-<h3 class="section-title">
-  <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
-  <span>Linee e varianti</span>
-</h3>
-
-<div class="toolbar">
-  <div class="toolbar-actions">
-    <button class="diff-filter active" data-diff="tutti" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#2c3e50;color:white;">
-      Tutte
-    </button>
-    <button class="diff-filter" data-diff="facile" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#e0e0e0;color:#333;">
-      Facile
-    </button>
-    <button class="diff-filter" data-diff="media" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#e0e0e0;color:#333;">
-      Media
-    </button>
-    <button class="diff-filter" data-diff="difficile" style="padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;background:#e0e0e0;color:#333;">
-      Difficile
-    </button>
+<div class="page">
+  <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+    <h1 class="page-title">{{ opening.nome }}</h1>
+    <span style="font-size:13px;font-weight:700;color:var(--text-muted);white-space:nowrap;">{{ completed_lines }}/{{ all_lines|length }} linee completate</span>
   </div>
-  <a href="{% url 'download_opening_lines' opening.id %}" class="download-link">
-    <svg class="ui-icon" aria-hidden="true"><use href="#icon-download"></use></svg>
-    <span>Scarica TXT</span>
-  </a>
+  {% if all_lines %}
+  {% with pct=completed_lines|stringformat:"s" total=all_lines|length %}
+  <div style="margin:8px 0 16px;display:flex;align-items:center;gap:10px;">
+    <div style="flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden;">
+      <div style="height:100%;width:{% widthratio completed_lines all_lines|length 100 %}%;background:var(--accent);border-radius:4px;transition:width .4s;"></div>
+    </div>
+    <span style="font-size:12px;font-weight:700;color:var(--text-muted);min-width:34px;text-align:right;">{% widthratio completed_lines all_lines|length 100 %}%</span>
+  </div>
+  {% endwith %}
+  {% endif %}
+  {% if opening.descrizione %}
+  <p class="page-desc">{{ opening.descrizione }}</p>
+  {% endif %}
+
+  <div class="toolbar">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="sort-btn active" id="btnLista">Lista</button>
+      <button class="sort-btn" id="btnGrafo">Grafo</button>
+    </div>
+    <a href="{% url 'download_opening_lines' opening.id %}" class="download-link">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+      <span>Scarica TXT</span>
+    </a>
+  </div>
+
+  <div id="sortControls" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+    <button class="sort-btn" data-sort="mosse">Mosse</button>
+    <button class="sort-btn" data-sort="completamenti">Completamenti</button>
+    <span style="width:1px;height:20px;background:var(--border);margin:0 2px;"></span>
+    <button class="dir-btn active" id="dirAsc">↑</button>
+    <button class="dir-btn" id="dirDesc">↓</button>
+  </div>
+
+  <div id="listView">
+    {% if all_lines %}
+    <div class="linee-list" id="lineList">
+      {% for line in all_lines %}
+      <a class="linea-card"
+         href="{% url 'line_detail' line.root.id line.numero %}"
+         data-completamenti="{{ line.completamenti }}"
+         data-mosse="{{ line.count_moves }}"
+         data-original-index="{{ forloop.counter0 }}">
+
+        <span class="linea-num">{{ forloop.counter }}</span>
+
+        <span class="linea-pgn">{{ line.pgn }}</span>
+
+        {% with c=line.completamenti %}
+        <span class="completamenti-badge {% if c == 0 %}c-zero{% elif c < 7 %}c-low{% elif c < 15 %}c-mid{% else %}c-high{% endif %}"
+              title="{{ c }} completamenti">{{ c }}</span>
+        {% endwith %}
+
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">Nessuna linea registrata per questa apertura.</div>
+    {% endif %}
+  </div>
+
+  <div id="graphView" style="display:none;">
+    <script type="application/json" id="treeData">{{ tree_json|safe }}</script>
+    <div id="treeContainer" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;min-height:520px;">
+      <div style="position:absolute;top:10px;right:10px;z-index:10;">
+        <button onclick="resetZoom()" style="font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);color:var(--text-muted);cursor:pointer;">Reset zoom</button>
+      </div>
+      <svg id="treeSvg" style="display:block;"></svg>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">
+      🔵 Nodo espanso &nbsp; 🟡 Nodo collassato (clicca per aprire) &nbsp; 🟢 Linea finale (clicca per aprirla) &nbsp;&nbsp; Scroll/pinch per zoom · trascina per muovere
+    </div>
+  </div>
 </div>
 
-<ul class="tree" id="lineList">
-  {% for line in all_lines %}
-  <li class="line-node" data-diff="{{ line.difficolta }}" style="display:flex;align-items:center;gap:8px;">
-    <a href="{% url 'line_detail' line.root.id line.numero %}" style="flex:1;text-decoration:none;color:inherit;">
-      <span class="mosse">{{ line.pgn }}</span>
-      {% if line.difficolta %}
-        <span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:700;margin-left:4px;background:{% if line.difficolta == 'facile' %}#43a047{% elif line.difficolta == 'difficile' %}#c62828{% else %}#f9a825{% endif %};color:white;">
-          {{ line.get_difficolta_display }}
-        </span>
-      {% endif %}
-      {% with line.completamenti as c %}
-        <span class="badge-count {% if c == 0 %}low{% elif c < 7 %}medium{% elif c < 15 %}high{% else %}top{% endif %}" title="Completata {{ c }} volte">
-          {{ c }}
-        </span>
-      {% endwith %}
-    </a>
-  </li>
-  {% empty %}
-    <p>Nessuna linea registrata per questa apertura.</p>
-  {% endfor %}
-</ul>
-
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll('.diff-filter').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.diff-filter').forEach(b => {
-        b.style.background = '#e0e0e0';
-        b.style.color = '#333';
-        b.classList.remove('active');
-      });
-      btn.style.background = '#2c3e50';
-      btn.style.color = 'white';
-      btn.classList.add('active');
+// ── View toggle ────────────────────────────────────────────────────────────
+const btnLista    = document.getElementById('btnLista');
+const btnGrafo    = document.getElementById('btnGrafo');
+const listView    = document.getElementById('listView');
+const graphView   = document.getElementById('graphView');
+const sortControls = document.getElementById('sortControls');
+let graphReady = false;
 
-      const diff = btn.dataset.diff;
-      document.querySelectorAll('#lineList .line-node').forEach(li => {
-        li.style.display = diff === 'tutti' || li.dataset.diff === diff ? 'flex' : 'none';
+btnLista.addEventListener('click', () => {
+  btnLista.classList.add('active'); btnGrafo.classList.remove('active');
+  listView.style.display = '';
+  sortControls.style.display = 'flex';
+  graphView.style.display = 'none';
+});
+
+btnGrafo.addEventListener('click', () => {
+  btnGrafo.classList.add('active'); btnLista.classList.remove('active');
+  listView.style.display = 'none';
+  sortControls.style.display = 'none';
+  graphView.style.display = '';
+  if (!graphReady) { graphReady = true; loadD3(); }
+});
+
+function loadD3() {
+  const s = document.createElement('script');
+  s.src = 'https://d3js.org/d3.v7.min.js';
+  s.onload = initGraph;
+  document.head.appendChild(s);
+}
+
+// ── Sort (list view) ───────────────────────────────────────────────────────
+const lineList = document.getElementById('lineList');
+if (lineList) {
+  let currentSort = null, currentDir = 'asc';
+
+  function applySort() {
+    const cards = Array.from(lineList.querySelectorAll('.linea-card'));
+    if (!currentSort) {
+      cards.sort((a, b) => +a.dataset.originalIndex - +b.dataset.originalIndex);
+    } else {
+      const key = currentSort;
+      cards.sort((a, b) => {
+        const va = +a.dataset[key], vb = +b.dataset[key];
+        return currentDir === 'asc' ? va - vb : vb - va;
       });
+    }
+    cards.forEach((c, i) => {
+      c.querySelector('.linea-num').textContent = i + 1;
+      lineList.appendChild(c);
+    });
+  }
+
+  document.querySelectorAll('[data-sort]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSort = btn.dataset.sort;
+      applySort();
     });
   });
-});
+
+  document.getElementById('dirAsc').addEventListener('click', () => {
+    currentDir = 'asc';
+    document.getElementById('dirAsc').classList.add('active');
+    document.getElementById('dirDesc').classList.remove('active');
+    applySort();
+  });
+  document.getElementById('dirDesc').addEventListener('click', () => {
+    currentDir = 'desc';
+    document.getElementById('dirDesc').classList.add('active');
+    document.getElementById('dirAsc').classList.remove('active');
+    applySort();
+  });
+}
+
+// ── D3 tree ────────────────────────────────────────────────────────────────
+let zoomBehavior = null;
+
+function resetZoom() {
+  if (zoomBehavior) d3.select('#treeSvg').call(zoomBehavior.transform, d3.zoomIdentity.translate(60, 40).scale(1));
+}
+
+function initGraph() {
+  const raw = JSON.parse(document.getElementById('treeData').textContent);
+  const container = document.getElementById('treeContainer');
+  const dark = document.documentElement.classList.contains('dark');
+
+  function toNode(d) {
+    return { name: d.n || '', line: d.l, children: d.c && d.c.length ? d.c.map(toNode) : undefined };
+  }
+
+  const root = d3.hierarchy(toNode(raw));
+  let uid = 0;
+  root.each(d => {
+    d._uid = ++uid;
+    if (d.depth >= 3 && d.children) { d._children = d.children; d.children = null; }
+    else d._children = null;
+  });
+
+  const NODE_H = 28, DEPTH_W = 160;
+  const margin = { top: 40, right: 180, bottom: 40, left: 50 };
+
+  const svg = d3.select('#treeSvg').style('font', '12px/1 monospace');
+  const g = svg.append('g');
+
+  zoomBehavior = d3.zoom().scaleExtent([0.08, 6])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoomBehavior);
+
+  const treeLayout = d3.tree().nodeSize([NODE_H, DEPTH_W]);
+
+  function colorNode(d) {
+    if (d.depth === 0)              return dark ? '#334155' : '#94a3b8';
+    if (d.data.line)                return '#22c55e';
+    if (!d.children && d._children) return '#f59e0b';
+    return '#3b82f6';
+  }
+
+  function update() {
+    treeLayout(root);
+    const nodes = root.descendants();
+    const links = root.links();
+
+    let xMin = Infinity, xMax = -Infinity, yMax = 0;
+    nodes.forEach(d => {
+      if (d.x < xMin) xMin = d.x;
+      if (d.x > xMax) xMax = d.x;
+      if (d.y > yMax) yMax = d.y;
+    });
+    const svgH = Math.max(xMax - xMin + margin.top + margin.bottom, 300);
+    const svgW = Math.max(yMax + margin.left + margin.right, 500);
+    svg.attr('width', svgW).attr('height', svgH);
+
+    const ox = margin.left, oy = -xMin + margin.top;
+
+    const linkGen = d3.linkHorizontal().x(d => ox + d.y).y(d => oy + d.x);
+
+    const lk = g.selectAll('path.tl').data(links, d => d.target._uid);
+    lk.enter().append('path').attr('class', 'tl').attr('fill', 'none').attr('stroke-width', 1.5)
+      .merge(lk)
+      .attr('stroke', dark ? '#334155' : '#cbd5e1')
+      .attr('d', linkGen);
+    lk.exit().remove();
+
+    const nd = g.selectAll('g.tn').data(nodes, d => d._uid);
+    const ndEnter = nd.enter().append('g').attr('class', 'tn').attr('cursor', 'pointer')
+      .on('click', (event, d) => {
+        if (d.data.line) {
+          window.location.href = `/opening/${d.data.line.id}/line/${d.data.line.num}/`;
+        } else {
+          if (d.children) { d._children = d.children; d.children = null; }
+          else if (d._children) { d.children = d._children; d._children = null; }
+          update();
+        }
+      });
+
+    ndEnter.append('circle').attr('stroke-width', 2).attr('stroke', dark ? '#0f172a' : '#fff');
+    ndEnter.append('text').attr('dy', '0.32em').style('pointer-events', 'none')
+      .style('font-size', '12px').style('font-family', 'monospace');
+
+    const ndAll = ndEnter.merge(nd);
+    ndAll.attr('transform', d => `translate(${ox + d.y},${oy + d.x})`);
+    ndAll.select('circle')
+      .attr('r', d => d.depth === 0 ? 4 : 7)
+      .attr('fill', colorNode);
+    ndAll.select('text')
+      .text(d => d.depth === 0 ? '' : d.data.name)
+      .attr('x', d => (d.children || d._children) && d.depth > 0 ? -11 : 11)
+      .attr('text-anchor', d => (d.children || d._children) && d.depth > 0 ? 'end' : 'start')
+      .style('fill', dark ? '#e2e8f0' : '#1e293b');
+
+    nd.exit().remove();
+  }
+
+  update();
+
+  // Fit view on first render
+  const svgEl = document.getElementById('treeSvg');
+  const cW = container.clientWidth || 800;
+  const sW = +svgEl.getAttribute('width'), sH = +svgEl.getAttribute('height');
+  const scale = Math.min(cW / sW, (container.clientHeight || 520) / sH, 1);
+  svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(20, 20).scale(scale));
+}
 </script>
 {% endblock %}

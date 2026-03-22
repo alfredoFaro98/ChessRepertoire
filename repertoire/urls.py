@@ -10,6 +10,7 @@ urlpatterns = [
     path('analisi-domande/', views.analisi_domande, name='analisi_domande'),
     path("opening/<int:pk>/download/", views.download_opening_lines, name="download_opening_lines"),
     path("opening/<int:root_id>/line/<int:numero>/train/", views.line_training, name="line_training"),
-    path("linea/<int:line_id>/completata/", views.incrementa_completamenti, name="incrementa_completamenti"),
-    path("import-pgn/", views.import_pgn, name="import_pgn"),
+path("import-pgn/", views.import_pgn, name="import_pgn"),
+    path("finali/", views.finali_list, name="finali_list"),
+    path("finali/<int:capitolo_id>/", views.finali_chapter_detail, name="finali_chapter_detail"),
 ]

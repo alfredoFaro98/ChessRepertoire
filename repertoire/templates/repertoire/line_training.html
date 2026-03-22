@@ -9,6 +9,7 @@
 <!-- Anti-FOUC dark mode -->
 <script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
 
+<link rel="icon" type="image/png" href="{% static 'repertoire/img/header_logo.png' %}">
 <link rel="stylesheet" href="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.css' %}">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
@@ -27,11 +28,67 @@
   html.dark .btn.light     { background: #2a2a3a; color: #e0e0e0; }
   html.dark .btn.light:hover { background: #333; }
   html.dark .bar           { background: #333; }
-  html.dark .srs-panel     { background: #1e1e2e; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
-  html.dark .srs-panel h3  { color: #aaa; }
   html.dark .muted         { color: #aaa; }
   html.dark .arrow         { color: #90caf9; }
   html.dark .arrow:hover   { color: #bbdefb; }
+
+  /* ── Move list laterale ── */
+  .board-with-moves {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 10px;
+  }
+  .movelist {
+    width: 100px;
+    max-height: 480px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 4px;
+  }
+  .movelist-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .move-chip {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: 'Segoe UI', monospace;
+  }
+  .move-chip.mine {
+    background: rgba(67,160,71,0.13);
+  }
+  .move-chip.opponent {
+    background: rgba(25,118,210,0.11);
+  }
+  html.dark .move-chip.mine     { background: rgba(67,160,71,0.22); }
+  html.dark .move-chip.opponent { background: rgba(25,118,210,0.22); }
+  .move-num {
+    font-size: 11px;
+    opacity: 0.55;
+    min-width: 16px;
+    flex-shrink: 0;
+  }
+  .move-san {
+    font-size: 14px;
+    font-weight: 700;
+    color: inherit;
+  }
+  .mine  .move-san { color: #2e7d32; }
+  .opponent .move-san { color: #1565c0; }
+  html.dark .mine     .move-san { color: #81c784; }
+  html.dark .opponent .move-san { color: #90caf9; }
+  @media (max-width: 680px) { .movelist { display: none; } }
 
   .header-bar {
     width: 100%;
@@ -126,40 +183,6 @@
     flex: 0 0 auto;
   }
 
-  /* SRS rating buttons */
-  .srs-panel {
-    display: none;
-    margin: 16px auto;
-    max-width: 520px;
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-  }
-  .srs-panel h3 { margin: 0 0 12px; font-size: 15px; color: #555; }
-  .srs-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  .srs-btn {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 80px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  }
-  .srs-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-  .srs-btn small { font-size: 11px; font-weight: 400; opacity: 0.8; }
-  .srs-again  { background: #e53935; color: #fff; }
-  .srs-hard   { background: #fb8c00; color: #fff; }
-  .srs-good   { background: #43a047; color: #fff; }
-  .srs-easy   { background: #1976d2; color: #fff; }
-
   .muted { color:#666; font-size:14px; }
 
   .nav-arrows {
@@ -250,41 +273,34 @@
     <button id="asBlack" class="btn light">Allena il Nero</button>
   </div>
 
-  <!-- wrapper per overlay SVG freccia hint -->
-  <div style="position:relative; display:inline-block;">
-    <div id="board"></div>
-    <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
-      <defs>
-        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="rgba(220,50,50,0.92)"/>
-        </marker>
-      </defs>
-      <line id="hintLine" x1="0" y1="0" x2="0" y2="0"
-            stroke="rgba(220,50,50,0.92)" stroke-width="10" stroke-linecap="round"
-            marker-end="url(#arrowhead)"/>
-    </svg>
+  <div class="board-with-moves">
+    <!-- Colonna sinistra: mie mosse -->
+    <div class="movelist" id="movelistRight">
+      <div class="movelist-label">Tu</div>
+    </div>
+
+    <!-- wrapper per overlay SVG freccia hint -->
+    <div style="position:relative; display:inline-block;">
+      <div id="board"></div>
+      <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="rgba(220,50,50,0.92)"/>
+          </marker>
+        </defs>
+        <line id="hintLine" x1="0" y1="0" x2="0" y2="0"
+              stroke="rgba(220,50,50,0.92)" stroke-width="10" stroke-linecap="round"
+              marker-end="url(#arrowhead)"/>
+      </svg>
+    </div>
+
+    <!-- Colonna destra: mosse avversario -->
+    <div class="movelist" id="movelistLeft">
+      <div class="movelist-label">Avversario</div>
+    </div>
   </div>
   <div class="bar"><div id="progress"></div></div>
   <div id="feedback"></div>
-
-  <!-- Pannello rating SRS (appare dopo il completamento) -->
-  <div class="srs-panel" id="srsPanel">
-    <h3>Come ti e' sembrata questa linea?</h3>
-    <div class="srs-buttons">
-      <button class="srs-btn srs-again" onclick="valutaLinea(0)">
-        Di nuovo<small>Rivedila subito</small>
-      </button>
-      <button class="srs-btn srs-hard" onclick="valutaLinea(3)">
-        Difficile<small>Presto</small>
-      </button>
-      <button class="srs-btn srs-good" onclick="valutaLinea(4)">
-        Bene<small>Tra qualche giorni</small>
-      </button>
-      <button class="srs-btn srs-easy" onclick="valutaLinea(5)">
-        Facile<small>Tra molti giorni</small>
-      </button>
-    </div>
-  </div>
 
   <div class="toolbar">
     <button id="restartBtn" class="btn success" style="display:none;"><svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ricomincia</span></button>
@@ -297,14 +313,6 @@
 <script src="{% static 'vendor/jquery/jquery-3.7.1.min.js' %}"></script>
 <script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
 <script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
-
-<script>
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-}
-</script>
 
 <script>
 (function () {
@@ -323,13 +331,29 @@ function getCookie(name) {
   const progressEl  = document.getElementById('progress');
   const feedback    = document.getElementById('feedback');
   const restartBtn  = document.getElementById('restartBtn');
-  const srsPanel    = document.getElementById('srsPanel');
   let sideToTrain    = 'w';
   let idx            = 0;
   let selectedSquare = null;
   let lineaCompletata = false;
-  let trainingStartTime = null;
   let arrowTimeout   = null;
+
+  // ─── Move list laterale ───────────────────────────────────────────────────
+  const mlLeft  = document.getElementById('movelistLeft');
+  const mlRight = document.getElementById('movelistRight');
+
+  function clearMovelists() {
+    mlLeft.innerHTML  = '<div class="movelist-label">Avversario</div>';
+    mlRight.innerHTML = '<div class="movelist-label">Tu</div>';
+  }
+
+  function addMoveChip(san, isMyMove, num) {
+    const el = document.createElement('div');
+    el.className = 'move-chip ' + (isMyMove ? 'mine' : 'opponent');
+    el.innerHTML = `<span class="move-num">${num}.</span><span class="move-san">${san}</span>`;
+    const col = isMyMove ? mlRight : mlLeft;
+    col.appendChild(el);
+    col.scrollTop = col.scrollHeight;
+  }
 
   // ─── Dimensioni responsive ─────────────────────────────────────────────────
   function getBoardSize() {
@@ -346,7 +370,6 @@ function getCookie(name) {
     onMouseoverSquare:  onMouseoverSquare,
     onMouseoutSquare:   removeHighlights,
     onSnapEnd:          () => board.position(game.fen()),
-    onSquareClick:      onSquareClick,
   });
 
   // Imposta larghezza iniziale e al resize
@@ -406,19 +429,23 @@ function getCookie(name) {
   function setSide(side) {
     sideToTrain = side;
     lineaCompletata = false;
-    trainingStartTime = Date.now();
     hideHintArrow();
     game.reset();
     board.start();
     board.orientation(side === 'w' ? 'white' : 'black');
     idx = 0;
     selectedSquare = null;
-    srsPanel.style.display = 'none';
     restartBtn.style.display = 'none';
+    clearMovelists();
     setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} - gioca la mossa corretta`, '');
     updateProgress();
     if (side === 'b' && movesSAN.length) {
-      try { game.move(movesSAN[idx]); idx++; board.position(game.fen()); } catch(e) { console.warn(e); }
+      try {
+        const autoMv = game.move(movesSAN[idx]);
+        if (autoMv) addMoveChip(autoMv.san, false, Math.floor(idx/2) + 1);
+        idx++;
+        board.position(game.fen());
+      } catch(e) { console.warn(e); }
     }
   }
 
@@ -472,22 +499,29 @@ function getCookie(name) {
       return false;
     }
 
+    const myMoveNum = Math.floor(idx/2) + 1;
     idx++;
+    addMoveChip(mv.san, true, myMoveNum);
     hideHintArrow();
     setFeedback(`Corretto: ${mv.san}`, 'correct');
     board.position(game.fen());
     updateProgress();
 
     if (idx < movesSAN.length) {
-      try { game.move(movesSAN[idx]); idx++; board.position(game.fen()); updateProgress(); }
-      catch(e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
+      try {
+        const replyMoveNum = Math.floor(idx/2) + 1;
+        const replyMv = game.move(movesSAN[idx]);
+        if (replyMv) addMoveChip(replyMv.san, false, replyMoveNum);
+        idx++;
+        board.position(game.fen());
+        updateProgress();
+      } catch(e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
     }
 
     if (idx >= movesSAN.length) {
       setFeedback('Linea completata.', 'correct');
       restartBtn.style.display = 'inline-block';
       lineaCompletata = true;
-      srsPanel.style.display = 'block';
     }
     return true;
   }
@@ -501,20 +535,61 @@ function getCookie(name) {
   }
 
   function onDrop(source, target) {
+    if (source === target) return 'snapback';
     removeHighlights();
     selectedSquare = null;
     if (!processMove(source, target)) return 'snapback';
   }
 
   // ─── Click-to-move ────────────────────────────────────────────────────────
-  function onSquareClick(square, piece) {
+  // chessboard.js con draggable:true blocca i click sui pezzi,
+  // quindi usiamo mousedown (capture) + mouseup per rilevare i click.
+  let _clickState = null;
+
+  function handleInputStart(event) {
+    const squareNode = event.target.closest('.square-55d63');
+    if (!squareNode) { _clickState = null; return; }
+    const squareClass = Array.from(squareNode.classList).find(c => c.startsWith('square-') && c !== 'square-55d63');
+    if (!squareClass) return;
+    
+    let x, y;
+    if (event.touches && event.touches.length > 0) {
+      x = event.touches[0].clientX;
+      y = event.touches[0].clientY;
+    } else {
+      x = event.clientX;
+      y = event.clientY;
+    }
+    _clickState = { square: squareClass.replace('square-', ''), x: x, y: y };
+  }
+
+  const boardElNode = document.getElementById('board');
+  boardElNode.addEventListener('mousedown', handleInputStart, true);
+  boardElNode.addEventListener('touchstart', handleInputStart, {capture: true, passive: true});
+
+  function handleInputEnd(event) {
+    if (!_clickState) return;
+    
+    let x, y;
+    if (event.changedTouches && event.changedTouches.length > 0) {
+      x = event.changedTouches[0].clientX;
+      y = event.changedTouches[0].clientY;
+    } else {
+      x = event.clientX;
+      y = event.clientY;
+    }
+    
+    const dx = Math.abs(x - _clickState.x);
+    const dy = Math.abs(y - _clickState.y);
+    const square = _clickState.square;
+    _clickState = null;
+    if (dx > 8 || dy > 8) return; // era un drag, non un click
+
     if (game.game_over() || lineaCompletata) return;
     if (game.turn() !== sideToTrain) return;
 
-    const isOwnPiece = piece && (
-      (sideToTrain === 'w' && piece.startsWith('w')) ||
-      (sideToTrain === 'b' && piece.startsWith('b'))
-    );
+    const piece = game.get(square);
+    const isOwnPiece = piece && piece.color === sideToTrain;
 
     if (isOwnPiece) {
       if (selectedSquare === square) {
@@ -534,6 +609,9 @@ function getCookie(name) {
     }
   }
 
+  document.addEventListener('mouseup', handleInputEnd);
+  document.addEventListener('touchend', handleInputEnd);
+
   function onMouseoverSquare(sq) {
     if (game.turn() !== sideToTrain || selectedSquare) return;
     const legal = game.moves({ square: sq, verbose: true });
@@ -543,57 +621,6 @@ function getCookie(name) {
   }
 
   restartBtn.addEventListener('click', () => setSide(sideToTrain));
-
-  document.getElementById('board').addEventListener('click', event => {
-    const squareNode = event.target.closest('.square-55d63');
-    if (!squareNode) {
-      selectedSquare = null;
-      clearHighlights();
-      return;
-    }
-
-    const squareClass = Array.from(squareNode.classList).find(cls => cls.startsWith('square-') && cls !== 'square-55d63');
-    if (!squareClass) return;
-
-    const square = squareClass.replace('square-', '');
-    const piece = game.get(square);
-    const pieceCode = piece ? piece.color + piece.type.toUpperCase() : false;
-    onSquareClick(square, pieceCode);
-  });
-
-  document.addEventListener('click', event => {
-    if (!event.target.closest('#board') && selectedSquare) {
-      selectedSquare = null;
-      clearHighlights();
-    }
-  });
-
-  // ─── SRS API ──────────────────────────────────────────────────────────────
-  window.valutaLinea = function(quality) {
-    const url        = "{% url 'incrementa_completamenti' 0 %}".replace("/0/", "/{{ line.id }}/");
-    const timeSeconds = trainingStartTime ? Math.round((Date.now() - trainingStartTime) / 1000) : null;
-    srsPanel.style.display = 'none';
-    trainingStartTime = null;  // reset per evitare doppio invio
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCookie("csrftoken"),
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: JSON.stringify({ quality, time_seconds: timeSeconds })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        const header = document.getElementById("comp-count");
-        if (header) header.textContent = `Completata ${data.totale} volte`;
-        const giorni = data.srs_interval;
-        setFeedback(`Salvato. Prossima ripetizione tra ${giorni} giorno${giorni === 1 ? '' : 'i'}`, 'correct');
-      }
-    })
-    .catch(err => console.error("Errore fetch:", err));
-  };
 
 })();
 </script>

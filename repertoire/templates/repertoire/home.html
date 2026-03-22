@@ -214,49 +214,9 @@
       <div class="label">Linee studiate</div>
     </div>
     <div class="stat-card">
-      <div class="num">{{ new_lines_count }}</div>
-      <div class="label">Linee nuove</div>
-    </div>
-    <div class="stat-card">
       <div class="num">{{ total_completions }}</div>
       <div class="label">Sessioni totali</div>
     </div>
-    <div class="stat-card">
-      <div class="num">{{ due_lines.count }}</div>
-      <div class="label">Da ripassare</div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>
-      <svg class="section-title-icon" aria-hidden="true"><use href="#icon-calendar"></use></svg>
-      <span>Ripasso personalizzato</span>
-    </h2>
-    {% if due_lines %}
-      <div class="due-list">
-        {% for line in due_lines %}
-          <div class="due-item">
-            <div>
-              <div style="font-size:12px;color:#888;margin-bottom:3px;">
-                {{ line.root.nome }} - Linea {{ line.numero }}
-              </div>
-              <div class="pgn-preview">{{ line.pgn|truncatechars:80 }}</div>
-            </div>
-            <div class="meta">Scade: {{ line.srs_due_date }}</div>
-            <a class="btn-train" href="{% url 'line_training' line.root.id line.numero %}">
-              <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg>
-              <span>Allena</span>
-            </a>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-state">
-        <svg class="state-icon" aria-hidden="true"><use href="#icon-check"></use></svg>
-        <strong>Nessuna linea in scadenza oggi.</strong><br>
-        <span>Torna domani o inizia a studiare nuove aperture.</span>
-      </div>
-    {% endif %}
   </div>
 
   <div class="section">

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import OpeningRoot, OpeningLine
+from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione
 from .utils import trova_parent
 
 
@@ -96,5 +96,27 @@ class OpeningLineAdmin(admin.ModelAdmin):
             return formfield
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+# === ADMIN FINALI ===
+class FinalePosizionInline(admin.TabularInline):
+    model = FinalePosizione
+    extra = 1
+    fields = ('titolo', 'fen', 'difficolta', 'ordine', 'note')
+
+@admin.register(FinaleCapitolo)
+class FinaleCapitoloAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'ordine', 'num_posizioni')
+    inlines = [FinalePosizionInline]
+
+    def num_posizioni(self, obj):
+        return obj.posizioni.count()
+    num_posizioni.short_description = 'Posizioni'
+
+@admin.register(FinalePosizione)
+class FinalePosizoneAdmin(admin.ModelAdmin):
+    list_display = ('capitolo', 'titolo', 'difficolta', 'completamenti')
+    list_filter = ('capitolo', 'difficolta')
+    search_fields = ('titolo', 'note')
 
 
