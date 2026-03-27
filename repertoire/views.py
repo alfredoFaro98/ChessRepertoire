@@ -279,10 +279,43 @@ def home(request):
     })
 
 
+def _fen_pieces(fen):
+    """Ritorna (pezzi_bianchi, pezzi_neri) come liste di simboli Unicode ordinati per valore."""
+    W = {'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙'}
+    B = {'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'}
+    parts = (fen or '').split()
+    placement = parts[0] if parts else ''
+    wc = {p: 0 for p in 'KQRBNP'}
+    bc = {p: 0 for p in 'kqrbnp'}
+    for ch in placement:
+        if ch in wc: wc[ch] += 1
+        elif ch in bc: bc[ch] += 1
+    white = [W[p] for p in 'KQRBNP' for _ in range(wc[p])]
+    black = [B[p] for p in 'kqrbnp' for _ in range(bc[p])]
+    return white, black
+
+
 # ── Finali ────────────────────────────────────────────────────────────────────
 def finali_list(request):
-    capitoli = FinaleCapitolo.objects.prefetch_related('posizioni').all()
-    return render(request, 'repertoire/finali_list.html', {'capitoli': capitoli})
+    capitoli = FinaleCapitolo.objects.prefetch_related('linee', 'posizioni').all()
+    capitoli_data = []
+    for cap in capitoli:
+        fen = cap.fen_preview
+        if not fen:
+            first_line = cap.linee.first()
+            if first_line:
+                fen = first_line.fen_start
+        white_pieces, black_pieces = _fen_pieces(fen)
+        num_linee = cap.linee.count()
+        linee_studiate = cap.linee.filter(completamenti__gt=0).count()
+        capitoli_data.append({
+            'obj': cap,
+            'white_pieces': white_pieces,
+            'black_pieces': black_pieces,
+            'num_linee': num_linee,
+            'linee_studiate': linee_studiate,
+        })
+    return render(request, 'repertoire/finali_list.html', {'capitoli': capitoli_data})
 
 
 def errori(request):
@@ -291,12 +324,10 @@ def errori(request):
 
 def finali_chapter_detail(request, capitolo_id):
     capitolo  = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
-    posizioni = capitolo.posizioni.all()
-    linee     = list(capitolo.linee.all())
+    linee     = list(capitolo.linee.filter(parent__isnull=True))
     completed = sum(1 for l in linee if l.completamenti > 0)
     return render(request, 'repertoire/finali_chapter_detail.html', {
         'capitolo':        capitolo,
-        'posizioni':       posizioni,
         'linee':           linee,
         'completed_lines': completed,
     })
@@ -304,7 +335,7 @@ def finali_chapter_detail(request, capitolo_id):
 
 def finale_line_detail(request, capitolo_id, line_num):
     capitolo = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
-    linee    = list(FinaleLine.objects.filter(capitolo=capitolo).order_by('numero', 'id'))
+    linee    = list(FinaleLine.objects.filter(capitolo=capitolo, parent__isnull=True).order_by('numero', 'id'))
 
     if not (1 <= line_num <= len(linee)):
         return render(request, '404.html', status=404)

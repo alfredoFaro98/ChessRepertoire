@@ -80,6 +80,7 @@ class FinaleCapitolo(models.Model):
     nome        = models.CharField(max_length=100, unique=True)
     descrizione = models.TextField(blank=True, null=True)
     ordine      = models.PositiveIntegerField(default=0)
+    fen_preview = models.TextField(blank=True, null=True, help_text="FEN per la miniatura del capitolo. Se vuoto, usa la prima linea.")
 
     class Meta:
         ordering = ['ordine', 'nome']

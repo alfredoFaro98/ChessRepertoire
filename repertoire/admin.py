@@ -107,6 +107,7 @@ class FinalePosizionInline(admin.TabularInline):
 @admin.register(FinaleCapitolo)
 class FinaleCapitoloAdmin(admin.ModelAdmin):
     list_display = ('nome', 'ordine', 'num_posizioni')
+    fields = ('nome', 'descrizione', 'ordine', 'fen_preview')
     inlines = [FinalePosizionInline]
 
     def num_posizioni(self, obj):
