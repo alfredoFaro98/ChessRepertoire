@@ -1,0 +1,975 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minigiochi - Chess Repertoire</title>
+<script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
+<link rel="icon" type="image/png" href="{% static 'repertoire/img/header_logo.png' %}">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --bg: #edf1f5;
+    --bg-card: rgba(255,255,255,0.92);
+    --bg-card-strong: #ffffff;
+    --text: #18212b;
+    --text-muted: #617182;
+    --border: rgba(24,33,43,0.12);
+    --accent: #2f6f5e;
+    --accent-strong: #245748;
+    --line-light: #eeeed2;
+    --line-dark: #769656;
+  }
+
+  html.dark {
+    --bg: #0d141b;
+    --bg-card: rgba(24,32,40,0.92);
+    --bg-card-strong: #182028;
+    --text: #e5edf5;
+    --text-muted: #9dafc1;
+    --border: rgba(148,163,184,0.18);
+    --accent: #90c6ad;
+    --accent-strong: #b7dccc;
+    --line-light: #d8d7b7;
+    --line-dark: #5f814c;
+  }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(47,111,94,0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(61,120,180,0.12), transparent 24%),
+      linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 90%, #ffffff 10%) 100%);
+    color: var(--text);
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  .ui-icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+  }
+
+  .app-shell {
+    height: 100dvh;
+    padding: 14px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .topbar {
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: 0 14px 34px rgba(15,23,42,0.08);
+    backdrop-filter: blur(14px);
+  }
+
+  .brand-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex: 0 0 auto;
+  }
+
+  .brand-copy {
+    min-width: 0;
+  }
+
+  .brand-copy strong {
+    display: block;
+    font-size: 17px;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+
+  .brand-copy span {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .top-note {
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(148,163,184,0.08);
+    border: 1px solid rgba(148,163,184,0.18);
+  }
+
+  .top-btn,
+  .mini-select {
+    min-height: 42px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .top-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 14px;
+    text-decoration: none;
+    cursor: pointer;
+    background: rgba(148,163,184,0.08);
+    border-color: rgba(148,163,184,0.22);
+    color: var(--text);
+  }
+
+  .top-btn.primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    border-color: transparent;
+    color: #eefcf4;
+    box-shadow: 0 12px 28px rgba(47,111,94,0.2);
+  }
+
+  #darkToggle {
+    width: 42px;
+    padding: 0;
+  }
+
+  .stage {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .panel {
+    min-height: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 18px 36px rgba(15,23,42,0.08);
+    backdrop-filter: blur(14px);
+  }
+
+  .side-panel {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+    color: #8fd4a3;
+    border: 1px solid rgba(143,212,163,0.34);
+    background: rgba(143,212,163,0.08);
+  }
+
+  .side-panel h1 {
+    font-size: 28px;
+    line-height: 1.02;
+    margin: 0;
+  }
+
+  .side-panel p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  .target-card {
+    border-radius: 18px;
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(47,111,94,0.12), rgba(61,120,180,0.08));
+    border: 1px solid rgba(47,111,94,0.16);
+  }
+
+  .target-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .target-square {
+    font-size: clamp(34px, 5vw, 60px);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: 1px;
+  }
+
+  .target-square.idle {
+    font-size: clamp(22px, 3vw, 32px);
+    letter-spacing: 0;
+    color: var(--text-muted);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(148,163,184,0.08);
+    border: 1px solid rgba(148,163,184,0.14);
+  }
+
+  .stat-card span {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+  }
+
+  .stat-card strong {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .action-btn,
+  .mini-select {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 14px;
+  }
+
+  .action-btn {
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    border: none;
+    color: #eefcf4;
+    box-shadow: 0 12px 26px rgba(47,111,94,0.18);
+  }
+
+  .action-btn.secondary {
+    background: rgba(148,163,184,0.08);
+    border: 1px solid rgba(148,163,184,0.22);
+    color: var(--text);
+    box-shadow: none;
+  }
+
+  .mini-select {
+    background: var(--bg-card-strong);
+    color: var(--text);
+    border-color: var(--border);
+    cursor: pointer;
+  }
+
+  .mini-help {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(148,163,184,0.07);
+    border: 1px solid rgba(148,163,184,0.14);
+  }
+
+  .mini-help strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+
+  .mini-help span {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .board-panel {
+    min-height: 0;
+    padding: 16px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .feedback-banner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(148,163,184,0.08);
+    border: 1px solid rgba(148,163,184,0.14);
+  }
+
+  .feedback-main {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .feedback-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .feedback-banner.good .feedback-main { color: #2f855a; }
+  .feedback-banner.bad .feedback-main { color: #dc2626; }
+
+  .feedback-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-muted);
+    background: rgba(148,163,184,0.08);
+    border: 1px solid rgba(148,163,184,0.16);
+  }
+
+  .board-wrap {
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 4px;
+  }
+
+  #boardShell {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+  }
+
+  .coord-board {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 6px solid #243443;
+    box-shadow: 0 22px 42px rgba(15,23,42,0.18);
+  }
+
+  .square-btn {
+    position: relative;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.16s ease, filter 0.16s ease;
+  }
+
+  .square-btn:hover {
+    filter: brightness(1.05);
+    z-index: 1;
+  }
+
+  .square-btn:active {
+    transform: scale(0.985);
+  }
+
+  .square-btn.light { background: var(--line-light); }
+  .square-btn.dark { background: var(--line-dark); }
+  .square-btn.correct { box-shadow: inset 0 0 0 6px rgba(34,197,94,0.88); }
+  .square-btn.wrong { box-shadow: inset 0 0 0 6px rgba(239,68,68,0.88); }
+  .square-btn.target { box-shadow: inset 0 0 0 6px rgba(59,130,246,0.9); }
+
+  .edge-file,
+  .edge-rank {
+    position: absolute;
+    font-size: clamp(9px, 1.1vmin, 12px);
+    font-weight: 800;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .edge-file {
+    right: 6px;
+    bottom: 4px;
+    color: rgba(17,24,39,0.42);
+  }
+
+  .edge-rank {
+    top: 4px;
+    left: 6px;
+    color: rgba(17,24,39,0.42);
+  }
+
+  .square-btn.dark .edge-file,
+  .square-btn.dark .edge-rank {
+    color: rgba(255,255,255,0.65);
+  }
+
+  .footer-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 0 4px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  @media (max-width: 980px) {
+    .app-shell {
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .topbar {
+      padding: 10px 12px;
+      border-radius: 16px;
+    }
+
+    .top-note {
+      display: none;
+    }
+
+    .stage {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .side-panel {
+      padding: 14px;
+      gap: 10px;
+    }
+
+    .side-panel h1 {
+      font-size: 22px;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stat-card strong {
+      font-size: 20px;
+    }
+
+    .controls-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .feedback-banner {
+      grid-template-columns: 1fr;
+    }
+
+    .feedback-meta {
+      justify-content: flex-start;
+    }
+
+    .mini-help {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .brand-copy span {
+      display: none;
+    }
+
+    .top-actions {
+      gap: 6px;
+    }
+
+    .top-btn {
+      min-height: 38px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+
+    .side-panel {
+      padding: 12px;
+    }
+
+    .stats-grid,
+    .controls-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat-card,
+    .target-card {
+      padding: 12px;
+    }
+
+    .board-panel {
+      padding: 10px;
+    }
+
+    .coord-board {
+      border-width: 4px;
+      border-radius: 16px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+    }
+  }
+
+  @media (max-height: 760px) {
+    .side-panel p {
+      display: none;
+    }
+
+    .target-card {
+      padding: 14px;
+    }
+
+    .feedback-sub {
+      display: none;
+    }
+  }
+</style>
+</head>
+<body>
+{% include "repertoire/includes/icon_sprite.html" %}
+
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand-block">
+      <img src="{% static 'repertoire/img/header_logo.png' %}" class="brand-logo" alt="Chess Repertoire Logo">
+      <div class="brand-copy">
+        <strong>Minigiochi</strong>
+        <span>Coordinate Rush immersivo, progettato per stare dentro al viewport.</span>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <span class="top-note">Esc per uscire</span>
+      <button type="button" class="top-btn" id="fullscreenBtn">Schermo intero</button>
+      <button id="darkToggle" class="top-btn" title="Cambia tema" aria-label="Cambia tema"></button>
+      <a href="{% url 'home' %}" class="top-btn primary" id="exitBtn">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg>
+        <span>Esci</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="stage">
+    <aside class="panel side-panel" id="sidePanel">
+      <div class="eyebrow">Coordinate Rush</div>
+      <h1>Trova la casa giusta senza perdere il ritmo</h1>
+      <p>Questa vista resta compatta e senza scroll su desktop: target, statistiche, controlli e scacchiera stanno tutti nello schermo. Su schermi piccoli si adatta mantenendo il focus sul board.</p>
+
+      <div class="target-card">
+        <div class="target-label">Casa da cliccare</div>
+        <div id="targetSquare" class="target-square idle">Premi Inizia</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span>Punteggio</span>
+          <strong id="scoreValue">0</strong>
+        </div>
+        <div class="stat-card">
+          <span>Precisione</span>
+          <strong id="accuracyValue">100%</strong>
+        </div>
+        <div class="stat-card">
+          <span>Serie</span>
+          <strong id="streakValue">0</strong>
+        </div>
+        <div class="stat-card">
+          <span>Best</span>
+          <strong id="bestStreakValue">0</strong>
+        </div>
+      </div>
+
+      <div class="controls-grid">
+        <button type="button" class="action-btn" id="startGameBtn">
+          <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg>
+          <span>Inizia</span>
+        </button>
+        <button type="button" class="action-btn secondary" id="resetGameBtn">
+          <svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg>
+          <span>Reset</span>
+        </button>
+        <select id="modeSelect" class="mini-select" aria-label="Seleziona la modalita">
+          <option value="all">Tutte</option>
+          <option value="light">Chiare</option>
+          <option value="dark">Scure</option>
+        </select>
+        <select id="orientationSelect" class="mini-select" aria-label="Seleziona il lato in basso">
+          <option value="white">Bianco giu</option>
+          <option value="black">Nero giu</option>
+        </select>
+      </div>
+
+      <div class="mini-help">
+        <strong>Idea giusta d'uso</strong>
+        <span>Fai sessioni brevissime ma intense. Quando le coordinate diventano automatiche, tutto il resto del training scorre molto meglio.</span>
+      </div>
+    </aside>
+
+    <section class="panel board-panel">
+      <div id="feedbackBanner" class="feedback-banner">
+        <div>
+          <div id="feedbackMain" class="feedback-main">Allenamento pronto</div>
+          <div id="feedbackSub" class="feedback-sub">Premi Inizia e clicca subito la casa che compare a sinistra. Se vuoi, passa anche in schermo intero.</div>
+        </div>
+        <div class="feedback-meta">
+          <span class="meta-pill">Orientamento: <strong id="orientationLabel" style="margin-left:6px;">Bianco</strong></span>
+          <span class="meta-pill">Modalita: <strong id="modeLabel" style="margin-left:6px;">Tutte</strong></span>
+        </div>
+      </div>
+
+      <div class="board-wrap" id="boardWrap">
+        <div id="boardShell">
+          <div id="coordBoard" class="coord-board" aria-label="Scacchiera per il minigioco"></div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        <span>La scacchiera si ridimensiona automaticamente per stare nel viewport.</span>
+        <span>Esc esce, oppure usa il bottone in alto.</span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var btn = document.getElementById('darkToggle');
+    if (!btn) return;
+    btn.innerHTML = document.documentElement.classList.contains('dark')
+      ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+      : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+    btn.addEventListener('click', function(){
+      var isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('darkMode', isDark ? '1' : '0');
+      btn.innerHTML = isDark
+        ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+        : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+    const ranksWhite = [8, 7, 6, 5, 4, 3, 2, 1];
+    const ranksBlack = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    const boardEl = document.getElementById("coordBoard");
+    const boardWrap = document.getElementById("boardWrap");
+    const boardShell = document.getElementById("boardShell");
+    const targetSquareEl = document.getElementById("targetSquare");
+    const feedbackBanner = document.getElementById("feedbackBanner");
+    const feedbackMain = document.getElementById("feedbackMain");
+    const feedbackSub = document.getElementById("feedbackSub");
+    const scoreValue = document.getElementById("scoreValue");
+    const accuracyValue = document.getElementById("accuracyValue");
+    const streakValue = document.getElementById("streakValue");
+    const bestStreakValue = document.getElementById("bestStreakValue");
+    const startGameBtn = document.getElementById("startGameBtn");
+    const resetGameBtn = document.getElementById("resetGameBtn");
+    const modeSelect = document.getElementById("modeSelect");
+    const orientationSelect = document.getElementById("orientationSelect");
+    const modeLabel = document.getElementById("modeLabel");
+    const orientationLabel = document.getElementById("orientationLabel");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const exitBtn = document.getElementById("exitBtn");
+
+    const bestStreakKey = "minigame_square_rush_best_streak";
+    let orientation = orientationSelect.value;
+    let mode = modeSelect.value;
+    let running = false;
+    let targetSquare = null;
+    let score = 0;
+    let attempts = 0;
+    let streak = 0;
+    let bestStreak = parseInt(localStorage.getItem(bestStreakKey) || "0", 10) || 0;
+
+    function isLightSquare(square) {
+      const fileIndex = files.indexOf(square[0]);
+      const rank = parseInt(square[1], 10);
+      return (fileIndex + rank) % 2 === 0;
+    }
+
+    function getAllSquares() {
+      const allSquares = [];
+      for (const rank of ranksWhite) {
+        for (const file of files) {
+          allSquares.push(`${file}${rank}`);
+        }
+      }
+      return allSquares;
+    }
+
+    function allowedSquares() {
+      return getAllSquares().filter(square => {
+        if (mode === "light") return isLightSquare(square);
+        if (mode === "dark") return !isLightSquare(square);
+        return true;
+      });
+    }
+
+    function updateHeaderMeta() {
+      modeLabel.textContent = mode === "all" ? "Tutte" : (mode === "light" ? "Chiare" : "Scure");
+      orientationLabel.textContent = orientation === "white" ? "Bianco" : "Nero";
+    }
+
+    function setFeedback(mainText, subText, tone) {
+      feedbackBanner.classList.remove("good", "bad");
+      if (tone) feedbackBanner.classList.add(tone);
+      feedbackMain.textContent = mainText;
+      feedbackSub.textContent = subText;
+    }
+
+    function updateStats() {
+      const accuracy = attempts ? Math.round((score / attempts) * 100) : 100;
+      scoreValue.textContent = score;
+      accuracyValue.textContent = `${accuracy}%`;
+      streakValue.textContent = streak;
+      bestStreakValue.textContent = bestStreak;
+    }
+
+    function clearBoardStates() {
+      boardEl.querySelectorAll(".square-btn").forEach(button => {
+        button.classList.remove("correct", "wrong", "target");
+      });
+    }
+
+    function buildBoard() {
+      boardEl.innerHTML = "";
+      const shownFiles = orientation === "white" ? files : [...files].reverse();
+      const shownRanks = orientation === "white" ? ranksWhite : ranksBlack;
+      const fileLabelRank = orientation === "white" ? 1 : 8;
+      const rankLabelFile = orientation === "white" ? "a" : "h";
+
+      shownRanks.forEach(rank => {
+        shownFiles.forEach(file => {
+          const square = `${file}${rank}`;
+          const button = document.createElement("button");
+          const light = isLightSquare(square);
+          button.type = "button";
+          button.className = `square-btn ${light ? "light" : "dark"}`;
+          button.dataset.square = square;
+          button.setAttribute("aria-label", `Casa ${square}`);
+          button.addEventListener("click", () => handleGuess(square));
+
+          if (rank === fileLabelRank) {
+            const fileLabel = document.createElement("span");
+            fileLabel.className = "edge-file";
+            fileLabel.textContent = file;
+            button.appendChild(fileLabel);
+          }
+
+          if (file === rankLabelFile) {
+            const rankLabel = document.createElement("span");
+            rankLabel.className = "edge-rank";
+            rankLabel.textContent = rank;
+            button.appendChild(rankLabel);
+          }
+
+          boardEl.appendChild(button);
+        });
+      });
+    }
+
+    function syncBoardSize() {
+      const rect = boardWrap.getBoundingClientRect();
+      const size = Math.max(220, Math.floor(Math.min(rect.width, rect.height)));
+      boardShell.style.width = `${size}px`;
+      boardShell.style.height = `${size}px`;
+    }
+
+    function pickNextSquare() {
+      const options = allowedSquares();
+      if (!options.length) {
+        targetSquare = null;
+        targetSquareEl.textContent = "N/A";
+        targetSquareEl.classList.add("idle");
+        setFeedback("Nessuna casa disponibile", "Controlla la modalita selezionata.", "bad");
+        return;
+      }
+
+      clearBoardStates();
+      targetSquare = options[Math.floor(Math.random() * options.length)];
+      targetSquareEl.textContent = targetSquare;
+      targetSquareEl.classList.remove("idle");
+      setFeedback("Clicca la casa richiesta", "Mantieni il ritmo: una risposta pulita e immediata vale piu' di una risposta lenta.", "");
+    }
+
+    function handleGuess(square) {
+      if (!running || !targetSquare) return;
+
+      attempts += 1;
+      const clickedButton = boardEl.querySelector(`[data-square="${square}"]`);
+      const targetButton = boardEl.querySelector(`[data-square="${targetSquare}"]`);
+
+      if (square === targetSquare) {
+        score += 1;
+        streak += 1;
+        bestStreak = Math.max(bestStreak, streak);
+        localStorage.setItem(bestStreakKey, String(bestStreak));
+        if (clickedButton) clickedButton.classList.add("correct");
+        updateStats();
+        setFeedback(`Perfetto: ${square}`, "Ottimo. Passiamo subito alla casa successiva.", "good");
+        window.setTimeout(pickNextSquare, 280);
+        return;
+      }
+
+      streak = 0;
+      if (clickedButton) clickedButton.classList.add("wrong");
+      if (targetButton) targetButton.classList.add("target");
+      updateStats();
+      setFeedback(`No, era ${targetSquare}`, `Hai cliccato ${square}. Nessun problema: resta aggressivo, ma pulito.`, "bad");
+      window.setTimeout(clearBoardStates, 500);
+    }
+
+    function startGame() {
+      running = true;
+      score = 0;
+      attempts = 0;
+      streak = 0;
+      updateStats();
+      startGameBtn.querySelector("span").textContent = "Ricomincia";
+      pickNextSquare();
+      syncBoardSize();
+    }
+
+    function resetGame() {
+      running = false;
+      targetSquare = null;
+      score = 0;
+      attempts = 0;
+      streak = 0;
+      clearBoardStates();
+      updateStats();
+      targetSquareEl.textContent = "Premi Inizia";
+      targetSquareEl.classList.add("idle");
+      setFeedback("Allenamento pronto", "Premi Inizia e clicca subito la casa che compare a sinistra. Se vuoi, passa anche in schermo intero.", "");
+      startGameBtn.querySelector("span").textContent = "Inizia";
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+          return;
+        }
+        await document.documentElement.requestFullscreen();
+      } catch (error) {
+        console.warn("Fullscreen non disponibile", error);
+      }
+    }
+
+    function exitImmersive() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = exitBtn.href;
+    }
+
+    startGameBtn.addEventListener("click", startGame);
+    resetGameBtn.addEventListener("click", resetGame);
+    fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+    orientationSelect.addEventListener("change", function () {
+      orientation = this.value;
+      updateHeaderMeta();
+      buildBoard();
+      syncBoardSize();
+      if (running && targetSquare) clearBoardStates();
+    });
+
+    modeSelect.addEventListener("change", function () {
+      mode = this.value;
+      updateHeaderMeta();
+      if (running) pickNextSquare();
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        exitImmersive();
+      }
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    window.addEventListener("resize", syncBoardSize);
+    document.addEventListener("fullscreenchange", syncBoardSize);
+
+    buildBoard();
+    updateHeaderMeta();
+    updateStats();
+    resetGame();
+    window.requestAnimationFrame(syncBoardSize);
+  })();
+</script>
+</body>
+</html>

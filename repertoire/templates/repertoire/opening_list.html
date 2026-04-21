@@ -393,6 +393,7 @@
             <div class="row-meta">
               <span class="meta-pill">{% if item.obj.difesa %}Difesa{% else %}Attacco{% endif %}</span>
               <span class="meta-pill">{{ item.obj.moves|wordcount }} mosse</span>
+              <span class="meta-pill">{{ item.due_linee }} da ripassare</span>
             </div>
             <p class="row-moves">{{ item.obj.moves|default:"Nessuna sequenza iniziale disponibile." }}</p>
             <div class="row-progress-meta">
@@ -407,6 +408,7 @@
           <h3>{{ item.obj.nome }}</h3>
           <p>{{ item.obj.moves }}</p>
           <div class="line-count">{{ item.num_linee }} linee totali</div>
+          <div class="line-count">{{ item.due_linee }} da ripassare oggi</div>
         {% endif %}
       </a>
     {% empty %}

@@ -187,8 +187,100 @@
   .correct { color:#2e7d32; }
   .wrong   { color:#c62828; }
 
-  .bar { width: min(480px, calc(100vw - 40px)); margin:10px auto 0; height:8px; background:#e0e0e0; border-radius:4px; overflow:hidden; }
-  .bar > div { height:100%; width:0%; background:#43a047; transition:width .25s; }
+  .progress-panel {
+    width: min(480px, calc(100vw - 40px));
+    margin: 14px auto 0;
+    text-align: left;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(44,62,80,0.12);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  }
+  html.dark .progress-panel {
+    background: #182028;
+    border-color: #334155;
+  }
+  .progress-panel-head {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .progress-panel-title {
+    font-size:14px;
+    font-weight:800;
+    color:#2c3e50;
+    margin-bottom:4px;
+  }
+  html.dark .progress-panel-title { color:#e5e7eb; }
+  .progress-panel-meta {
+    font-size:13px;
+    color:#666;
+  }
+  html.dark .progress-panel-meta { color:#9ca3af; }
+  .progress-panel-percent {
+    font-size:24px;
+    font-weight:800;
+    color:#2f6f5e;
+    line-height:1;
+  }
+  html.dark .progress-panel-percent { color:#9fe3bd; }
+  .progress-track {
+    width: 100%;
+    height: 10px;
+    margin-top: 2px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(148,163,184,0.18);
+    border: 1px solid rgba(148,163,184,0.14);
+  }
+  html.dark .progress-track {
+    background: rgba(71,85,105,0.5);
+    border-color: rgba(71,85,105,0.55);
+  }
+  .progress-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2f6f5e 0%, #61c48b 100%);
+    box-shadow: 0 0 18px rgba(97,196,139,0.25);
+    transition: width .25s ease;
+  }
+  .progress-session {
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size:13px;
+    color:#666;
+  }
+  html.dark .progress-session { color:#9ca3af; }
+  .progress-pills {
+    margin-top:10px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .progress-pill {
+    display:inline-flex;
+    align-items:center;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+    color:#51606f;
+    background:rgba(148,163,184,0.08);
+    border:1px solid rgba(148,163,184,0.2);
+  }
+  html.dark .progress-pill {
+    color:#cbd5e1;
+    background:rgba(148,163,184,0.14);
+    border-color:#334155;
+  }
 
   @media (max-width: 520px) { .btn { font-size: 13px; padding: 8px 12px; } }
 </style>
@@ -231,6 +323,27 @@
     <button id="asWhite" class="btn light">Allena il Bianco</button>
     <button id="asBlack" class="btn light">Allena il Nero</button>
   </div>
+  <p class="muted" style="margin-top:-6px;margin-bottom:18px;">Scorciatoie: trascina o tocca i pezzi, usa il suggerimento dopo un errore e fai avanzare la coda con il bottone della prossima linea.</p>
+
+  <div id="progressPanel" class="progress-panel">
+    <div class="progress-panel-head">
+      <div>
+        <div class="progress-panel-title">Completamento linea</div>
+        <div id="progressSummary" class="progress-panel-meta">0/0 mosse corrette</div>
+      </div>
+      <div id="progressPct" class="progress-panel-percent">0%</div>
+    </div>
+    <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+    <div class="progress-session">
+      <span id="sessionStats">0 corrette · 0 errori</span>
+      <span id="sessionTarget">Allenando il Bianco</span>
+    </div>
+    <div class="progress-pills">
+      <span class="progress-pill">Completamenti: <strong id="comp-count-inline" style="margin-left:6px;">{{ line.completamenti }}</strong></span>
+      <span class="progress-pill">Accuratezza: <strong id="lineAccuracy" style="margin-left:6px;">{{ line.accuracy|floatformat:1 }}%</strong></span>
+      <span class="progress-pill">Errori storici: <strong id="lineMistakes" style="margin-left:6px;">{{ line.mistakes }}</strong></span>
+    </div>
+  </div>
 
   <div class="board-with-moves">
     <div class="movelist" id="movelistRight">
@@ -260,8 +373,13 @@
     <button id="restartBtn" class="btn success" style="display:none;">
       <svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ricomincia</span>
     </button>
+    {% if next_line %}
+    <button id="nextLineBtn" class="btn primary" style="display:none;" onclick="window.location.href='{% url 'finale_line_training' capitolo.id next_line.numero %}'">
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg><span>Vai alla prossima</span>
+    </button>
+    {% endif %}
     <button class="btn light" onclick="window.location.href='{% url 'finale_line_detail' capitolo.id line.numero %}'">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg><span>Torna alla linea</span>
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg><span>Dettaglio linea</span>
     </button>
     <button class="btn primary" onclick="window.location.href='{% url 'finali_chapter_detail' capitolo.id %}'">
       <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg><span>Vai al capitolo</span>
@@ -288,9 +406,19 @@
     .filter(x => x && !['1-0','0-1','1/2-1/2','*'].includes(x));
 
   const game        = new window.Chess(fen_start);
-  const progressEl  = document.getElementById('progress');
+  const progressEl = document.getElementById('progressFill');
+  const progressPctEl = document.getElementById('progressPct');
+  const progressSummaryEl = document.getElementById('progressSummary');
+  const sessionStatsEl = document.getElementById('sessionStats');
+  const sessionTargetEl = document.getElementById('sessionTarget');
+  const progressPanelEl = document.getElementById('progressPanel');
   const feedback    = document.getElementById('feedback');
   const restartBtn  = document.getElementById('restartBtn');
+  const nextLineBtn = document.getElementById('nextLineBtn');
+  const trainingEventUrl = "{{ training_event_url }}";
+  const compCountInline = document.getElementById('comp-count-inline');
+  const lineAccuracyEl = document.getElementById('lineAccuracy');
+  const lineMistakesEl = document.getElementById('lineMistakes');
 
   // Determina il lato di default dal FEN
   const fenTurn = fen_start.split(' ')[1] || 'w';
@@ -299,6 +427,50 @@
   let selectedSquare = null;
   let lineaCompletata = false;
   let arrowTimeout   = null;
+  let sessionWrongAttempts = 0;
+  let sessionCorrectMoves = 0;
+  let completionSent = false;
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+
+  async function postTrainingEvent(payload) {
+    try {
+      const response = await fetch(trainingEventUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        console.warn('Training event non salvato', await response.text());
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.warn('Errore durante il salvataggio del training', error);
+      return null;
+    }
+  }
+
+  function rememberTrainingSession() {
+    try {
+      localStorage.setItem('lastTrainingSession', JSON.stringify({
+        url: window.location.pathname,
+        title: `${document.title} · ${sideToTrain === 'w' ? 'Bianco' : 'Nero'}`,
+        kind: 'Finale',
+        savedAt: new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.warn('Impossibile salvare la sessione corrente', error);
+    }
+  }
 
   const mlLeft  = document.getElementById('movelistLeft');
   const mlRight = document.getElementById('movelistRight');
@@ -337,7 +509,7 @@
     const size = getBoardSize();
     document.getElementById('board').style.width = size + 'px';
     board.resize();
-    document.querySelector('.bar').style.width = size + 'px';
+    progressPanelEl.style.width = size + 'px';
   }
   window.addEventListener('resize', resizeBoard);
   resizeBoard();
@@ -395,9 +567,14 @@
     idx = 0;
     selectedSquare = null;
     restartBtn.style.display = 'none';
+    if (nextLineBtn) nextLineBtn.style.display = 'none';
+    sessionWrongAttempts = 0;
+    sessionCorrectMoves = 0;
+    completionSent = false;
     clearMovelists();
     setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} - gioca la mossa corretta`, '');
     updateProgress();
+    rememberTrainingSession();
     // Se alleniamo il lato che NON muove per primo, l'avversario gioca subito
     if (side !== fenTurn && movesSAN.length) {
       try {
@@ -413,8 +590,22 @@
     feedback.className = cls || '';
     feedback.textContent = text;
   }
+  function moverForIndex(index) {
+    if (index % 2 === 0) return fenTurn;
+    return fenTurn === 'w' ? 'b' : 'w';
+  }
+  function getRequiredMoveCount() {
+    return movesSAN.filter((_, index) => moverForIndex(index) === sideToTrain).length;
+  }
   function updateProgress() {
-    progressEl.style.width = Math.min(100, Math.round((idx / movesSAN.length) * 100)) + '%';
+    const requiredMoves = getRequiredMoveCount();
+    const completedMoves = Math.min(sessionCorrectMoves, requiredMoves);
+    const percent = requiredMoves ? Math.round((completedMoves / requiredMoves) * 100) : 100;
+    progressEl.style.width = percent + '%';
+    progressPctEl.textContent = percent + '%';
+    progressSummaryEl.textContent = `${completedMoves}/${requiredMoves} mosse corrette`;
+    sessionStatsEl.textContent = `${sessionCorrectMoves} corrette · ${sessionWrongAttempts} errori`;
+    sessionTargetEl.textContent = `Allenando il ${sideToTrain === 'w' ? 'Bianco' : 'Nero'}`;
   }
   function squareEl(sq) { return document.querySelector('#board .square-' + sq); }
   function clearHighlights() {
@@ -438,12 +629,23 @@
   }
 
   function processMove(source, target) {
+    const currentFen = game.fen();
     const mv = game.move({ from: source, to: target, promotion: 'q' });
     if (!mv) return false;
 
     const expected = movesSAN[idx] || null;
     if (!expected || mv.san !== expected) {
       game.undo();
+      sessionWrongAttempts += 1;
+      updateProgress();
+      postTrainingEvent({
+        event: 'mistake',
+        wrong_move: mv.san,
+        expected_move: expected || '-',
+        fen: currentFen,
+        move_index: idx,
+        side_to_train: sideToTrain,
+      });
       setFeedback(`Sbagliato: dovevi giocare ${expected || '-'}`, 'wrong');
       board.position(game.fen());
       try {
@@ -456,6 +658,7 @@
 
     const myMoveNum = Math.floor(idx/2) + 1;
     idx++;
+    sessionCorrectMoves += 1;
     addMoveChip(mv.san, true, myMoveNum);
     hideHintArrow();
     setFeedback(`Corretto: ${mv.san}`, 'correct');
@@ -475,8 +678,34 @@
 
     if (idx >= movesSAN.length) {
       setFeedback('Linea completata.', 'correct');
-      restartBtn.style.display = 'inline-block';
+      restartBtn.style.display = 'inline-flex';
+      if (nextLineBtn) nextLineBtn.style.display = 'inline-flex';
       lineaCompletata = true;
+      if (!completionSent) {
+        completionSent = true;
+        postTrainingEvent({
+          event: 'completed',
+          wrong_attempts: sessionWrongAttempts,
+          correct_moves: sessionCorrectMoves,
+          total_moves: sessionCorrectMoves + sessionWrongAttempts,
+        }).then(result => {
+          if (result && result.completamenti) {
+            const compCount = document.getElementById('comp-count');
+            if (compCount) {
+              compCount.textContent = `Completata ${result.completamenti} volte`;
+            }
+            if (compCountInline) {
+              compCountInline.textContent = result.completamenti;
+            }
+          }
+          if (result && lineAccuracyEl) {
+            lineAccuracyEl.textContent = `${Number(result.accuracy || 0).toFixed(1)}%`;
+          }
+          if (result && lineMistakesEl) {
+            lineMistakesEl.textContent = result.mistakes;
+          }
+        });
+      }
     }
     return true;
   }

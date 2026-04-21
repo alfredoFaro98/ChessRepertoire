@@ -98,6 +98,7 @@ html:not(.dark) .dir-btn.active { background: #e2e8f0; color: #1e293b; border-co
   <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
     <h1 class="page-title">{{ capitolo.nome }}</h1>
     <span style="font-size:13px;font-weight:700;color:var(--text-muted);white-space:nowrap;">{{ completed_lines }}/{{ linee|length }} linee completate</span>
+    <span style="font-size:13px;font-weight:700;color:var(--text-muted);white-space:nowrap;">{{ due_lines }} da ripassare</span>
   </div>
 
   {% if linee %}

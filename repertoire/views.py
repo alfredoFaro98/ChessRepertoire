@@ -1,53 +1,144 @@
-import io
 import json
+import re
+
 import chess
 import chess.svg
-import chess.pgn
-import re
-from datetime import date, timedelta
-
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from django.db.models import Sum, Count
+from django.db import transaction
+from django.db.models import Count, F, Max, Q, Sum
 from django.db.models.functions import Length
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from .models import OpeningRoot, OpeningLine, FinaleCapitolo, FinalePosizione, FinaleLine
+from .models import (
+    FinaleCapitolo,
+    FinaleLine,
+    FinaleLineMistake,
+    FinalePosizione,
+    OpeningLine,
+    OpeningLineMistake,
+    OpeningRoot,
+)
+from .utils import (
+    due_label,
+    extract_pgn_lines,
+    is_due,
+    normalize_pgn,
+    pgn_preview,
+    tokenize_pgn,
+    trova_parent,
+    update_review_fields,
+)
 
 
-# ── Move-tree helpers ──────────────────────────────────────────────────────────
 def _pgn_to_moves(pgn):
-    s = re.sub(r'\{[^}]*\}', '', pgn)
-    s = re.sub(r'\$\d+', '', s)
-    s = re.sub(r'\d+\.+', ' ', s)
-    s = re.sub(r'(1-0|0-1|1/2-1/2|\*)', '', s)
-    s = re.sub(r'[+#!?]', '', s)
-    return [m for m in s.split() if m]
+    return tokenize_pgn(pgn)
 
 
 def _build_move_tree(lines):
-    root = {'n': '', 'c': [], 'l': None}
+    root = {"n": "", "c": [], "l": None}
     for line in lines:
         moves = _pgn_to_moves(line.pgn)
         node = root
         for move in moves:
-            child = next((c for c in node['c'] if c['n'] == move), None)
+            child = next((c for c in node["c"] if c["n"] == move), None)
             if child is None:
-                child = {'n': move, 'c': [], 'l': None}
-                node['c'].append(child)
+                child = {"n": move, "c": [], "l": None}
+                node["c"].append(child)
             node = child
         if moves:
-            node['l'] = {'id': line.root_id, 'num': line.numero}
+            node["l"] = {"id": line.root_id, "num": line.numero}
     return root
 
 
-# ── Lista aperture ─────────────────────────────────────────────────────────────
+def _opening_due_filter(now):
+    return Q(linee__review_attempts=0) | Q(linee__due_at__isnull=True) | Q(linee__due_at__lte=now)
+
+
+def _finale_due_filter(now):
+    return Q(linee__review_attempts=0) | Q(linee__due_at__isnull=True) | Q(linee__due_at__lte=now)
+
+
+def _line_due_filter(now):
+    return Q(review_attempts=0) | Q(due_at__isnull=True) | Q(due_at__lte=now)
+
+
+def _numbered_related_line_filter(prefix):
+    return Q(**{f"{prefix}numero__isnull": False}) & Q(**{f"{prefix}numero__gt": 0})
+
+
+def _numbered_line_filter():
+    return Q(numero__isnull=False) & Q(numero__gt=0)
+
+
+def _has_valid_line_number(line):
+    return line.numero is not None and line.numero > 0
+
+
+def _serialize_due_opening_line(line):
+    if not _has_valid_line_number(line):
+        return None
+    return {
+        "kind": "opening",
+        "kind_label": "Apertura",
+        "title": line.root.nome,
+        "subtitle": f"Linea {line.numero}",
+        "preview": line.titolo or pgn_preview(line.pgn, 10),
+        "status": due_label(line),
+        "difficulty": line.difficolta,
+        "mistakes": line.mistakes,
+        "accuracy": line.accuracy,
+        "train_url": reverse("line_training", args=[line.root_id, line.numero]),
+        "detail_url": reverse("line_detail", args=[line.root_id, line.numero]),
+        "due_at": line.due_at,
+    }
+
+
+def _serialize_due_finale_line(line):
+    if not _has_valid_line_number(line):
+        return None
+    return {
+        "kind": "finale",
+        "kind_label": "Finale",
+        "title": line.capitolo.nome,
+        "subtitle": f"Linea {line.numero}",
+        "preview": line.titolo or pgn_preview(line.pgn, 10),
+        "status": due_label(line),
+        "difficulty": line.difficolta,
+        "mistakes": line.mistakes,
+        "accuracy": line.accuracy,
+        "train_url": reverse("finale_line_training", args=[line.capitolo_id, line.numero]),
+        "detail_url": reverse("finale_line_detail", args=[line.capitolo_id, line.numero]),
+        "due_at": line.due_at,
+    }
+
+
+def _sort_due_entries(entries):
+    def sort_key(item):
+        due_at = item["due_at"]
+        return (due_at is not None, due_at or timezone.now(), -item["mistakes"], item["title"].lower())
+
+    return sorted(entries, key=sort_key)
+
+
 def opening_list(request):
-    query  = request.GET.get("q", "")
+    query = request.GET.get("q", "")
     filtro = request.GET.get("filtro", "tutti")
     view_mode = request.GET.get("view", "card")
     sort_mode = request.GET.get("sort", "lines")
+    now = timezone.now()
 
-    openings = OpeningRoot.objects.annotate(num_linee=Count('linee'))
+    openings = OpeningRoot.objects.annotate(
+        num_linee=Count("linee", distinct=True),
+        studied_linee=Count("linee", filter=Q(linee__completamenti__gt=0), distinct=True),
+        due_linee=Count(
+            "linee",
+            filter=_numbered_related_line_filter("linee__") & _opening_due_filter(now),
+            distinct=True,
+        ),
+    )
     if filtro == "attacchi":
         openings = openings.filter(difesa=False)
     elif filtro == "difese":
@@ -61,7 +152,7 @@ def opening_list(request):
         openings.sort(key=lambda opening: opening.nome.lower())
     else:
         sort_mode = "lines"
-        openings.sort(key=lambda opening: (-opening.num_linee, opening.nome.lower()))
+        openings.sort(key=lambda opening: (-opening.num_linee, -opening.due_linee, opening.nome.lower()))
 
     openings_data = []
     for opening in openings:
@@ -75,79 +166,92 @@ def opening_list(request):
         except Exception:
             pass
 
-        openings_data.append({
-            "obj": opening,
-            "svg": chess.svg.board(
-                board, size=220,
-                flipped=getattr(opening, "difesa", False),
-                colors={"square light": "#eeeed2", "square dark": "#769656"},
-            ),
-            "num_linee": opening.num_linee,
-            "studied_linee": opening.linee.filter(completamenti__gt=0).count(),
-        })
+        openings_data.append(
+            {
+                "obj": opening,
+                "svg": chess.svg.board(
+                    board,
+                    size=220,
+                    flipped=getattr(opening, "difesa", False),
+                    colors={"square light": "#eeeed2", "square dark": "#769656"},
+                ),
+                "num_linee": opening.num_linee,
+                "studied_linee": opening.studied_linee,
+                "due_linee": opening.due_linee,
+            }
+        )
 
-    return render(request, "repertoire/opening_list.html", {
-        "openings":     openings_data,
-        "all_openings": list(
-            OpeningRoot.objects
-            .all()
-            .order_by('nome')
-            .values('nome', 'difesa')
-        ),
-        "query":        query,
-        "filtro":       filtro,
-        "view_mode":    view_mode if view_mode in {"card", "row"} else "card",
-        "sort_mode":    sort_mode,
-    })
+    return render(
+        request,
+        "repertoire/opening_list.html",
+        {
+            "openings": openings_data,
+            "all_openings": list(OpeningRoot.objects.all().order_by("nome").values("nome", "difesa")),
+            "query": query,
+            "filtro": filtro,
+            "view_mode": view_mode if view_mode in {"card", "row"} else "card",
+            "sort_mode": sort_mode,
+        },
+    )
 
 
-# ── Dettaglio apertura ────────────────────────────────────────────────────────
 def opening_detail(request, opening_id):
     opening = get_object_or_404(OpeningRoot, pk=opening_id)
     all_lines = list(
-        OpeningLine.objects
-        .filter(root=opening)
-        .annotate(pgn_len=Length('pgn'))
-        .order_by('pgn_len')
+        OpeningLine.objects.filter(root=opening)
+        .filter(_numbered_line_filter())
+        .annotate(pgn_len=Length("pgn"))
+        .order_by("pgn_len", "numero", "id")
     )
     tree_json = json.dumps(_build_move_tree(all_lines))
-    completed  = sum(1 for l in all_lines if l.completamenti > 0)
-    return render(request, "repertoire/opening_detail.html", {
-        "opening":        opening,
-        "all_lines":      all_lines,
-        "tree_json":      tree_json,
-        "completed_lines": completed,
-    })
+    completed = sum(1 for line in all_lines if line.completamenti > 0)
+    due_count = sum(1 for line in all_lines if is_due(line))
+    return render(
+        request,
+        "repertoire/opening_detail.html",
+        {
+            "opening": opening,
+            "all_lines": all_lines,
+            "tree_json": tree_json,
+            "completed_lines": completed,
+            "due_lines": due_count,
+        },
+    )
 
 
-# ── Dettaglio linea ────────────────────────────────────────────────────────────
 def line_detail(request, root_id, line_num):
-    root  = get_object_or_404(OpeningRoot, id=root_id)
-    lines = list(OpeningLine.objects.filter(root=root).order_by('numero', 'id'))
+    root = get_object_or_404(OpeningRoot, id=root_id)
+    lines = list(OpeningLine.objects.filter(root=root).filter(_numbered_line_filter()).order_by("numero", "id"))
 
     if not (1 <= line_num <= len(lines)):
         return render(request, "404.html", status=404)
 
-    line      = lines[line_num - 1]
+    line = lines[line_num - 1]
     prev_line = lines[line_num - 2] if line_num > 1 else None
-    next_line = lines[line_num]     if line_num < len(lines) else None
+    next_line = lines[line_num] if line_num < len(lines) else None
 
-    return render(request, "repertoire/line_detail.html", {
-        "root":          root,
-        "line":          line,
-        "prev_line":     prev_line,
-        "next_line":     next_line,
-        "total_lines":   len(lines),
-        "line_position": line_num,
-    })
+    return render(
+        request,
+        "repertoire/line_detail.html",
+        {
+            "root": root,
+            "line": line,
+            "prev_line": prev_line,
+            "next_line": next_line,
+            "total_lines": len(lines),
+            "line_position": line_num,
+        },
+    )
 
 
-# ── Analisi domande ───────────────────────────────────────────────────────────
 def analisi_domande(request):
-    return render(request, 'repertoire/analisi_domande.html')
+    return render(request, "repertoire/analisi_domande.html")
 
 
-# ── Download TXT ──────────────────────────────────────────────────────────────
+def minigiochi(request):
+    return render(request, "repertoire/minigiochi.html")
+
+
 def download_opening_lines(request, pk):
     root = get_object_or_404(OpeningRoot, pk=pk)
     lines = root.linee.all().order_by("numero")
@@ -160,208 +264,469 @@ def download_opening_lines(request, pk):
     return response
 
 
-# ── Training ──────────────────────────────────────────────────────────────────
 def line_training(request, root_id, numero):
-    line      = get_object_or_404(OpeningLine, root_id=root_id, numero=numero)
-    prev_line = OpeningLine.objects.filter(root_id=root_id, numero__lt=numero).order_by('-numero').first()
-    next_line = OpeningLine.objects.filter(root_id=root_id, numero__gt=numero).order_by('numero').first()
-    return render(request, "repertoire/line_training.html", {
-        "line": line, "prev_line": prev_line, "next_line": next_line,
-    })
+    line = get_object_or_404(OpeningLine, root_id=root_id, numero=numero)
+    prev_line = OpeningLine.objects.filter(root_id=root_id, numero__lt=numero).order_by("-numero").first()
+    next_line = OpeningLine.objects.filter(root_id=root_id, numero__gt=numero).order_by("numero").first()
+    return render(
+        request,
+        "repertoire/line_training.html",
+        {
+            "line": line,
+            "prev_line": prev_line,
+            "next_line": next_line,
+            "training_event_url": reverse("line_training_event", args=[root_id, numero]),
+        },
+    )
 
 
-# ── Import PGN ────────────────────────────────────────────────────────────────
+@require_POST
+def line_training_event(request, root_id, numero):
+    line = get_object_or_404(OpeningLine, root_id=root_id, numero=numero)
+    return _handle_training_event(request, line, OpeningLineMistake)
+
+
 def import_pgn(request):
-    openings = OpeningRoot.objects.all().order_by('nome')
+    openings = OpeningRoot.objects.all().order_by("nome")
 
-    if request.method != 'POST':
-        return render(request, 'repertoire/import_pgn.html', {'openings': openings})
+    if request.method != "POST":
+        return render(request, "repertoire/import_pgn.html", {"openings": openings, "include_variations": False})
 
-    # Leggi il testo PGN (da textarea o da file)
-    pgn_text = request.POST.get('pgn_text', '').strip()
-    if 'pgn_file' in request.FILES and not pgn_text:
-        pgn_text = request.FILES['pgn_file'].read().decode('utf-8', errors='replace')
+    pgn_text = request.POST.get("pgn_text", "").strip()
+    if "pgn_file" in request.FILES and not pgn_text:
+        pgn_text = request.FILES["pgn_file"].read().decode("utf-8", errors="replace")
 
     if not pgn_text:
-        return render(request, 'repertoire/import_pgn.html', {
-            'openings': openings, 'error': 'Nessun PGN fornito.',
-        })
+        return render(
+            request,
+            "repertoire/import_pgn.html",
+            {
+                "openings": openings,
+                "error": "Nessun PGN fornito.",
+                "include_variations": request.POST.get("include_variations") == "on",
+            },
+        )
 
-    # Scegli / crea l'apertura
-    new_root_name = request.POST.get('new_root_name', '').strip()
-    root_id       = request.POST.get('root_id', '').strip()
+    new_root_name = request.POST.get("new_root_name", "").strip()
+    root_id = request.POST.get("root_id", "").strip()
+    include_variations = request.POST.get("include_variations") == "on"
 
     if new_root_name:
         root, _ = OpeningRoot.objects.get_or_create(nome=new_root_name)
     elif root_id:
         root = get_object_or_404(OpeningRoot, pk=root_id)
     else:
-        return render(request, 'repertoire/import_pgn.html', {
-            'openings': openings, 'error': "Seleziona o crea un'apertura di destinazione.",
-        })
+        return render(
+            request,
+            "repertoire/import_pgn.html",
+            {
+                "openings": openings,
+                "error": "Seleziona o crea un'apertura di destinazione.",
+                "include_variations": include_variations,
+            },
+        )
 
-    # Parsing PGN: ogni game → una linea
-    parsed_lines = []
-    pgn_io = io.StringIO(pgn_text)
-    while True:
-        game = chess.pgn.read_game(pgn_io)
-        if game is None:
-            break
-        board    = game.board()
-        parts    = []
-        move_num = board.fullmove_number
-        for move in game.mainline_moves():
-            if board.turn == chess.WHITE:
-                parts.append(f"{move_num}.")
-            parts.append(board.san(move))
-            board.push(move)
-            if board.turn == chess.WHITE:
-                move_num += 1
-        if parts:
-            parsed_lines.append(' '.join(parts))
-
+    parsed_lines = extract_pgn_lines(pgn_text, include_variations=include_variations)
     if not parsed_lines:
-        return render(request, 'repertoire/import_pgn.html', {
-            'openings': openings, 'error': 'Nessuna linea trovata nel PGN.',
-        })
+        return render(
+            request,
+            "repertoire/import_pgn.html",
+            {
+                "openings": openings,
+                "error": "Nessuna linea trovata nel PGN.",
+                "include_variations": include_variations,
+            },
+        )
 
-    existing  = set(OpeningLine.objects.filter(root=root).values_list('pgn', flat=True))
-    start_idx = OpeningLine.objects.filter(root=root).count() + 1
-    inserted  = 0
-    for i, pgn in enumerate(parsed_lines):
-        if pgn not in existing:
-            OpeningLine.objects.create(
-                root=root, numero=start_idx + i,
-                titolo=' '.join(pgn.replace('.', ' ').split()[:8]),
-                pgn=pgn,
-            )
-            inserted += 1
+    existing_lines = list(OpeningLine.objects.filter(root=root).order_by("numero"))
+    existing_normalized = {normalize_pgn(line.pgn) or line.pgn: line for line in existing_lines}
+    next_number = (OpeningLine.objects.filter(root=root).aggregate(max_num=Max("numero"))["max_num"] or 0) + 1
+    inserted_lines = []
+    duplicate_lines = []
 
-    return render(request, 'repertoire/import_pgn.html', {
-        'openings':      openings,
-        'success':       f'Importate {inserted} nuove linee in "{root.nome}".',
-        'root':          root,
-        'inserted':      inserted,
-        'total_parsed':  len(parsed_lines),
-    })
+    for pgn in parsed_lines:
+        normalized = normalize_pgn(pgn) or pgn
+        if normalized in existing_normalized:
+            duplicate_lines.append(pgn)
+            continue
+
+        line = OpeningLine.objects.create(
+            root=root,
+            numero=next_number,
+            titolo=pgn_preview(pgn, 8),
+            pgn=normalized,
+        )
+        inserted_lines.append(line)
+        existing_normalized[normalized] = line
+        next_number += 1
+
+    if inserted_lines:
+        for line in sorted(inserted_lines, key=lambda item: len(tokenize_pgn(item.pgn))):
+            line.parent = trova_parent(line)
+        OpeningLine.objects.bulk_update(inserted_lines, ["parent"])
+
+    if not root.moves:
+        root.moves = pgn_preview(parsed_lines[0], 6)[:50]
+        root.save(update_fields=["moves"])
+
+    return render(
+        request,
+        "repertoire/import_pgn.html",
+        {
+            "openings": openings,
+            "success": f'Importate {len(inserted_lines)} nuove linee in "{root.nome}".',
+            "root": root,
+            "inserted": len(inserted_lines),
+            "total_parsed": len(parsed_lines),
+            "duplicates_count": len(duplicate_lines),
+            "preview_lines": parsed_lines[:6],
+            "imported_lines_preview": [line.pgn for line in inserted_lines[:6]],
+            "include_variations": include_variations,
+        },
+    )
 
 
-# ── Dashboard Home ────────────────────────────────────────────────────────────
 def home(request):
-    filtro = request.GET.get('filtro', 'tutti')
-    if filtro not in ('attacchi', 'difese'):
-        filtro = 'tutti'
+    filtro = request.GET.get("filtro", "tutti")
+    if filtro not in ("tutti", "attacchi", "difese"):
+        filtro = "tutti"
 
-    total_lines       = OpeningLine.objects.count()
-    lines_studied     = OpeningLine.objects.filter(completamenti__gt=0).count()
-    total_completions = OpeningLine.objects.aggregate(t=Sum('completamenti'))['t'] or 0
+    difficolta = request.GET.get("difficolta", "tutte")
+    if difficolta not in ("tutte", "facile", "media", "difficile"):
+        difficolta = "tutte"
 
-    openings = OpeningRoot.objects.all()
-    if filtro == 'attacchi':
+    now = timezone.now()
+
+    total_lines = OpeningLine.objects.count()
+    lines_studied = OpeningLine.objects.filter(completamenti__gt=0).count()
+    total_completions = OpeningLine.objects.aggregate(total=Sum("completamenti"))["total"] or 0
+    due_opening_count = OpeningLine.objects.filter(_numbered_line_filter()).filter(_line_due_filter(now)).count()
+    due_final_count = FinaleLine.objects.filter(_numbered_line_filter()).filter(_line_due_filter(now)).count()
+
+    openings = OpeningRoot.objects.annotate(
+        total=Count("linee", distinct=True),
+        studied=Count("linee", filter=Q(linee__completamenti__gt=0), distinct=True),
+        due=Count(
+            "linee",
+            filter=_numbered_related_line_filter("linee__") & _opening_due_filter(now),
+            distinct=True,
+        ),
+    )
+    if filtro == "attacchi":
         openings = openings.filter(difesa=False)
-    elif filtro == 'difese':
+    elif filtro == "difese":
         openings = openings.filter(difesa=True)
 
     openings_progress = []
-    for op in openings:
-        total   = op.linee.count()
-        studied = op.linee.filter(completamenti__gt=0).count()
-        pct     = round(studied / total * 100) if total else 0
-        openings_progress.append({'obj': op, 'total': total, 'studied': studied, 'pct': pct})
-    openings_progress.sort(key=lambda x: -x['pct'])
+    for opening in openings:
+        pct = round((opening.studied / opening.total) * 100) if opening.total else 0
+        openings_progress.append(
+            {
+                "obj": opening,
+                "total": opening.total,
+                "studied": opening.studied,
+                "due": opening.due,
+                "pct": pct,
+            }
+        )
+    openings_progress.sort(key=lambda item: (-item["due"], -item["pct"], item["obj"].nome.lower()))
 
-    return render(request, 'repertoire/home.html', {
-        'total_lines':       total_lines,
-        'lines_studied':     lines_studied,
-        'total_completions': total_completions,
-        'openings_progress': openings_progress,
-        'filtro':            filtro,
-    })
+    due_openings_qs = OpeningLine.objects.select_related("root").filter(_numbered_line_filter()).filter(_line_due_filter(now))
+    if filtro == "attacchi":
+        due_openings_qs = due_openings_qs.filter(root__difesa=False)
+    elif filtro == "difese":
+        due_openings_qs = due_openings_qs.filter(root__difesa=True)
+    if difficolta != "tutte":
+        due_openings_qs = due_openings_qs.filter(difficolta=difficolta)
+
+    due_openings = _sort_due_entries(
+        filter(None, [_serialize_due_opening_line(line) for line in due_openings_qs.order_by("due_at", "-mistakes", "numero")[:12]])
+    )[:12]
+    due_finals = _sort_due_entries(
+        filter(
+            None,
+            [
+                _serialize_due_finale_line(line)
+                for line in FinaleLine.objects.select_related("capitolo")
+                .filter(_numbered_line_filter())
+                .filter(_line_due_filter(now))
+                .order_by("due_at", "-mistakes", "numero")[:8]
+            ],
+        )
+    )[:8]
+
+    fragile_lines = list(
+        OpeningLine.objects.select_related("root")
+        .filter(_numbered_line_filter())
+        .filter(mistakes__gt=0)
+        .order_by("-mistakes", "due_at", "numero")[:8]
+    )
+
+    return render(
+        request,
+        "repertoire/home.html",
+        {
+            "total_lines": total_lines,
+            "lines_studied": lines_studied,
+            "total_completions": total_completions,
+            "due_today_total": due_opening_count + due_final_count,
+            "due_openings": due_openings,
+            "due_finals": due_finals,
+            "fragile_lines": fragile_lines,
+            "openings_progress": openings_progress,
+            "filtro": filtro,
+            "difficolta": difficolta,
+        },
+    )
 
 
 def _fen_pieces(fen):
-    """Ritorna (pezzi_bianchi, pezzi_neri) come liste di simboli Unicode ordinati per valore."""
-    W = {'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙'}
-    B = {'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'}
-    parts = (fen or '').split()
-    placement = parts[0] if parts else ''
-    wc = {p: 0 for p in 'KQRBNP'}
-    bc = {p: 0 for p in 'kqrbnp'}
-    for ch in placement:
-        if ch in wc: wc[ch] += 1
-        elif ch in bc: bc[ch] += 1
-    white = [W[p] for p in 'KQRBNP' for _ in range(wc[p])]
-    black = [B[p] for p in 'kqrbnp' for _ in range(bc[p])]
+    white_symbols = {"K": "♔", "Q": "♕", "R": "♖", "B": "♗", "N": "♘", "P": "♙"}
+    black_symbols = {"k": "♚", "q": "♛", "r": "♜", "b": "♝", "n": "♞", "p": "♟"}
+    parts = (fen or "").split()
+    placement = parts[0] if parts else ""
+    white_counts = {piece: 0 for piece in "KQRBNP"}
+    black_counts = {piece: 0 for piece in "kqrbnp"}
+    for char in placement:
+        if char in white_counts:
+            white_counts[char] += 1
+        elif char in black_counts:
+            black_counts[char] += 1
+    white = [white_symbols[piece] for piece in "KQRBNP" for _ in range(white_counts[piece])]
+    black = [black_symbols[piece] for piece in "kqrbnp" for _ in range(black_counts[piece])]
     return white, black
 
 
-# ── Finali ────────────────────────────────────────────────────────────────────
 def finali_list(request):
-    capitoli = FinaleCapitolo.objects.prefetch_related('linee', 'posizioni').all()
+    now = timezone.now()
+    capitoli = FinaleCapitolo.objects.annotate(
+        num_linee=Count("linee", distinct=True),
+        linee_studiate=Count("linee", filter=Q(linee__completamenti__gt=0), distinct=True),
+        due_linee=Count(
+            "linee",
+            filter=_numbered_related_line_filter("linee__") & _finale_due_filter(now),
+            distinct=True,
+        ),
+    ).prefetch_related("linee", "posizioni")
+
     capitoli_data = []
-    for cap in capitoli:
-        fen = cap.fen_preview
-        if not fen:
-            first_line = cap.linee.first()
-            if first_line:
-                fen = first_line.fen_start
+    for capitolo in capitoli:
+        prefetched_lines = list(capitolo.linee.all())
+        first_line = prefetched_lines[0] if prefetched_lines else None
+        fen = capitolo.fen_preview or (first_line.fen_start if first_line else "")
         white_pieces, black_pieces = _fen_pieces(fen)
-        num_linee = cap.linee.count()
-        linee_studiate = cap.linee.filter(completamenti__gt=0).count()
-        capitoli_data.append({
-            'obj': cap,
-            'white_pieces': white_pieces,
-            'black_pieces': black_pieces,
-            'num_linee': num_linee,
-            'linee_studiate': linee_studiate,
-        })
-    return render(request, 'repertoire/finali_list.html', {'capitoli': capitoli_data})
+        capitoli_data.append(
+            {
+                "obj": capitolo,
+                "white_pieces": white_pieces,
+                "black_pieces": black_pieces,
+                "num_linee": capitolo.num_linee,
+                "linee_studiate": capitolo.linee_studiate,
+                "due_linee": capitolo.due_linee,
+            }
+        )
+    return render(request, "repertoire/finali_list.html", {"capitoli": capitoli_data})
 
 
 def errori(request):
-    return render(request, 'repertoire/errori.html')
+    kind = request.GET.get("kind", "tutti")
+    if kind not in {"tutti", "aperture", "finali"}:
+        kind = "tutti"
+
+    opening_errors = list(
+        OpeningLineMistake.objects.select_related("line__root")
+        .filter(line__numero__isnull=False, line__numero__gt=0)
+        .order_by("-occurrence_count", "-last_seen")[:25]
+    )
+    final_errors = list(
+        FinaleLineMistake.objects.select_related("line__capitolo")
+        .filter(line__numero__isnull=False, line__numero__gt=0)
+        .order_by("-occurrence_count", "-last_seen")[:25]
+    )
+
+    error_entries = []
+    if kind in {"tutti", "aperture"}:
+        for item in opening_errors:
+            if not _has_valid_line_number(item.line):
+                continue
+            error_entries.append(
+                {
+                    "kind": "Apertura",
+                    "title": item.line.root.nome,
+                    "subtitle": f"Linea {item.line.numero}",
+                    "wrong_move": item.wrong_move,
+                    "expected_move": item.expected_move,
+                    "fen": item.fen,
+                    "occurrence_count": item.occurrence_count,
+                    "last_seen": item.last_seen,
+                    "train_url": reverse("line_training", args=[item.line.root_id, item.line.numero]),
+                }
+            )
+    if kind in {"tutti", "finali"}:
+        for item in final_errors:
+            if not _has_valid_line_number(item.line):
+                continue
+            error_entries.append(
+                {
+                    "kind": "Finale",
+                    "title": item.line.capitolo.nome,
+                    "subtitle": f"Linea {item.line.numero}",
+                    "wrong_move": item.wrong_move,
+                    "expected_move": item.expected_move,
+                    "fen": item.fen,
+                    "occurrence_count": item.occurrence_count,
+                    "last_seen": item.last_seen,
+                    "train_url": reverse("finale_line_training", args=[item.line.capitolo_id, item.line.numero]),
+                }
+            )
+
+    error_entries.sort(key=lambda item: (-item["occurrence_count"], -item["last_seen"].timestamp()))
+
+    return render(
+        request,
+        "repertoire/errori.html",
+        {
+            "kind": kind,
+            "error_entries": error_entries[:40],
+            "opening_error_count": OpeningLineMistake.objects.filter(line__numero__isnull=False, line__numero__gt=0).count(),
+            "final_error_count": FinaleLineMistake.objects.filter(line__numero__isnull=False, line__numero__gt=0).count(),
+        },
+    )
 
 
 def finali_chapter_detail(request, capitolo_id):
-    capitolo  = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
-    linee     = list(capitolo.linee.filter(parent__isnull=True))
-    completed = sum(1 for l in linee if l.completamenti > 0)
-    return render(request, 'repertoire/finali_chapter_detail.html', {
-        'capitolo':        capitolo,
-        'linee':           linee,
-        'completed_lines': completed,
-    })
+    capitolo = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
+    linee = list(capitolo.linee.filter(parent__isnull=True).filter(_numbered_line_filter()).order_by("numero", "id"))
+    completed = sum(1 for line in linee if line.completamenti > 0)
+    due_count = sum(1 for line in linee if is_due(line))
+    return render(
+        request,
+        "repertoire/finali_chapter_detail.html",
+        {
+            "capitolo": capitolo,
+            "linee": linee,
+            "completed_lines": completed,
+            "due_lines": due_count,
+        },
+    )
 
 
 def finale_line_detail(request, capitolo_id, line_num):
     capitolo = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
-    linee    = list(FinaleLine.objects.filter(capitolo=capitolo, parent__isnull=True).order_by('numero', 'id'))
+    linee = list(
+        FinaleLine.objects.filter(capitolo=capitolo, parent__isnull=True)
+        .filter(_numbered_line_filter())
+        .order_by("numero", "id")
+    )
 
     if not (1 <= line_num <= len(linee)):
-        return render(request, '404.html', status=404)
+        return render(request, "404.html", status=404)
 
-    line      = linee[line_num - 1]
+    line = linee[line_num - 1]
     prev_line = linee[line_num - 2] if line_num > 1 else None
-    next_line = linee[line_num]     if line_num < len(linee) else None
+    next_line = linee[line_num] if line_num < len(linee) else None
 
-    return render(request, 'repertoire/finale_line_detail.html', {
-        'capitolo':      capitolo,
-        'line':          line,
-        'prev_line':     prev_line,
-        'next_line':     next_line,
-        'total_lines':   len(linee),
-        'line_position': line_num,
-    })
+    return render(
+        request,
+        "repertoire/finale_line_detail.html",
+        {
+            "capitolo": capitolo,
+            "line": line,
+            "prev_line": prev_line,
+            "next_line": next_line,
+            "total_lines": len(linee),
+            "line_position": line_num,
+        },
+    )
 
 
 def finale_line_training(request, capitolo_id, numero):
-    capitolo  = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
-    line      = get_object_or_404(FinaleLine, capitolo=capitolo, numero=numero)
-    prev_line = FinaleLine.objects.filter(capitolo=capitolo, numero__lt=numero).order_by('-numero').first()
-    next_line = FinaleLine.objects.filter(capitolo=capitolo, numero__gt=numero).order_by('numero').first()
-    return render(request, 'repertoire/finale_line_training.html', {
-        'capitolo': capitolo,
-        'line':     line,
-        'prev_line': prev_line,
-        'next_line': next_line,
-    })
+    capitolo = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
+    line = get_object_or_404(FinaleLine, capitolo=capitolo, numero=numero)
+    prev_line = FinaleLine.objects.filter(capitolo=capitolo, numero__lt=numero).order_by("-numero").first()
+    next_line = FinaleLine.objects.filter(capitolo=capitolo, numero__gt=numero).order_by("numero").first()
+    return render(
+        request,
+        "repertoire/finale_line_training.html",
+        {
+            "capitolo": capitolo,
+            "line": line,
+            "prev_line": prev_line,
+            "next_line": next_line,
+            "training_event_url": reverse("finale_line_training_event", args=[capitolo_id, numero]),
+        },
+    )
+
+
+@require_POST
+def finale_line_training_event(request, capitolo_id, numero):
+    capitolo = get_object_or_404(FinaleCapitolo, pk=capitolo_id)
+    line = get_object_or_404(FinaleLine, capitolo=capitolo, numero=numero)
+    return _handle_training_event(request, line, FinaleLineMistake)
+
+
+def _handle_training_event(request, line, mistake_model):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "error": "Payload non valido."}, status=400)
+
+    event = payload.get("event")
+    if event == "mistake":
+        wrong_move = (payload.get("wrong_move") or "-").strip()[:30]
+        expected_move = (payload.get("expected_move") or "").strip()[:30]
+        fen = (payload.get("fen") or "").strip()
+        move_index = int(payload.get("move_index") or 0)
+        side_to_train = (payload.get("side_to_train") or "w").strip()[:1] or "w"
+
+        if not expected_move or not fen:
+            return JsonResponse({"ok": False, "error": "Fen e mossa attesa sono obbligatorie."}, status=400)
+
+        with transaction.atomic():
+            mistake, created = mistake_model.objects.get_or_create(
+                line=line,
+                fen=fen,
+                wrong_move=wrong_move,
+                expected_move=expected_move,
+                move_index=move_index,
+                side_to_train=side_to_train,
+                defaults={"occurrence_count": 1},
+            )
+            if not created:
+                mistake_model.objects.filter(pk=mistake.pk).update(
+                    occurrence_count=F("occurrence_count") + 1,
+                    last_seen=timezone.now(),
+                )
+                mistake.refresh_from_db(fields=["occurrence_count", "last_seen"])
+
+        return JsonResponse({"ok": True, "occurrence_count": mistake.occurrence_count})
+
+    if event == "completed":
+        wrong_attempts = max(0, int(payload.get("wrong_attempts") or 0))
+        correct_moves = max(0, int(payload.get("correct_moves") or 0))
+        total_moves = max(0, int(payload.get("total_moves") or 0))
+
+        with transaction.atomic():
+            result = update_review_fields(line, wrong_attempts, correct_moves, total_moves)
+            line.save(
+                update_fields=[
+                    "completamenti",
+                    "last_reviewed",
+                    "due_at",
+                    "review_attempts",
+                    "mistakes",
+                    "accuracy",
+                ]
+            )
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "completamenti": line.completamenti,
+                "due_at": result["due_at"].isoformat() if result["due_at"] else None,
+                "accuracy": line.accuracy,
+                "mistakes": line.mistakes,
+            }
+        )
+
+    return JsonResponse({"ok": False, "error": "Evento non supportato."}, status=400)

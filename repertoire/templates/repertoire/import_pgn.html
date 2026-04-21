@@ -129,7 +129,7 @@
     <svg class="page-icon" aria-hidden="true"><use href="#icon-upload"></use></svg>
     <span>Importa linee da PGN</span>
   </h2>
-  <p class="subtitle">Incolla o carica un file PGN. Ogni partita nel file diventa una linea separata.</p>
+  <p class="subtitle">Incolla o carica un file PGN. Puoi importare la sola main line oppure tutte le varianti foglia in modo normalizzato.</p>
 
   {% if error %}
     <div class="alert alert-error">
@@ -162,6 +162,11 @@
 
       <label>Carica un file .pgn:</label>
       <input type="file" name="pgn_file" accept=".pgn,.txt">
+
+      <label style="display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;">
+        <input type="checkbox" name="include_variations" {% if include_variations %}checked{% endif %} style="width:auto;margin:0;">
+        <span>Importa anche le varianti del PGN</span>
+      </label>
     </div>
 
     <div class="card">
@@ -198,12 +203,34 @@
     <div class="help">
       <ul style="margin:0;padding-left:18px;">
         <li>Ogni <strong>partita</strong> nel file PGN diventa una <strong>linea separata</strong>.</li>
-        <li>Vengono importate solo le mosse della <strong>variante principale</strong>.</li>
-        <li>Le linee duplicate vengono <strong>saltate automaticamente</strong>.</li>
+        <li>Se attivi l'opzione varianti, vengono importati tutti i <strong>rami foglia</strong> del PGN.</li>
+        <li>Le linee vengono <strong>normalizzate</strong> prima del controllo duplicati.</li>
+        <li>Le linee duplicate vengono <strong>saltate automaticamente</strong> e i parent vengono assegnati in automatico.</li>
         <li>Puoi incollare PGN con o senza header, ad esempio <code>[Event "..."]</code>.</li>
         <li>PGN senza header: scrivi solo le mosse, ad esempio <code>1. e4 e5 2. Nf3 *</code>.</li>
       </ul>
     </div>
   </div>
+
+  {% if total_parsed %}
+  <div class="card">
+    <h3>
+      <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
+      <span>Anteprima Import</span>
+    </h3>
+    <div class="help">
+      <p style="margin-top:0;"><strong>Linee lette:</strong> {{ total_parsed }}{% if duplicates_count %} · <strong>Duplicate saltate:</strong> {{ duplicates_count }}{% endif %}{% if inserted %} · <strong>Nuove linee:</strong> {{ inserted }}{% endif %}</p>
+
+      {% if preview_lines %}
+      <p><strong>Prime linee riconosciute:</strong></p>
+      <ul style="margin:0;padding-left:18px;">
+        {% for line in preview_lines %}
+        <li><code>{{ line }}</code></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

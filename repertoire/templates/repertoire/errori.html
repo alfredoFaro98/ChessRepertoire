@@ -1,8 +1,265 @@
 {% extends "repertoire/base.html" %}
-{% block title %}Errori — Chess Repertoire{% endblock %}
+{% block title %}Errori - Chess Repertoire{% endblock %}
 {% block content %}
-<div style="max-width:960px;margin:60px auto;padding:0 16px;text-align:center;color:var(--text-muted);">
-  <h1 style="font-size:24px;font-weight:800;margin-bottom:12px;">Errori</h1>
-  <p style="font-size:14px;">Pagina in costruzione.</p>
+<style>
+  .page { max-width: 1120px; margin: 0 auto; padding: 28px 16px 40px; }
+  .hero {
+    background: linear-gradient(135deg, rgba(248,113,113,0.12), rgba(24,33,43,0.12));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 22px;
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 28px; }
+  .hero p { margin: 0; color: var(--text-muted); max-width: 760px; line-height: 1.6; }
+  .hero-stats {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .hero-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(248,113,113,0.28);
+    background: rgba(248,113,113,0.08);
+    color: #fca5a5;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(248,113,113,0.28);
+    background: rgba(248,113,113,0.05);
+    color: #fca5a5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+  .filter-tab:hover {
+    background: rgba(248,113,113,0.08);
+    border-color: rgba(248,113,113,0.55);
+    color: #fecaca;
+    transform: translateY(-1px);
+  }
+  .filter-tab.active {
+    background: rgba(248,113,113,0.12);
+    border-color: rgba(248,113,113,0.7);
+    color: #ffe4e6;
+  }
+  .results {
+    display: grid;
+    gap: 12px;
+  }
+  .error-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .card-main { flex: 1; min-width: 0; }
+  .card-topline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #2c3e50;
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+  }
+  .move-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .move-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .move-box.good {
+    background: rgba(143,212,163,0.12);
+    color: #8fd4a3;
+    border: 1px solid rgba(143,212,163,0.3);
+  }
+  .move-box.bad {
+    background: rgba(248,113,113,0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(248,113,113,0.3);
+  }
+  .fen-box {
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(148,163,184,0.08);
+    border: 1px solid rgba(148,163,184,0.18);
+    border-radius: 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
+  }
+  .card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(148,163,184,0.26);
+    background: rgba(148,163,184,0.08);
+    color: var(--text-muted);
+  }
+  .pill.kind {
+    color: #8fc7ff;
+    border-color: rgba(143,199,255,0.28);
+    background: rgba(143,199,255,0.08);
+  }
+  .pill.count {
+    color: #fca5a5;
+    border-color: rgba(248,113,113,0.28);
+    background: rgba(248,113,113,0.08);
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-train {
+    background: transparent;
+    color: #8fc7ff;
+    border: 1px solid rgba(143, 199, 255, 0.42);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-train:hover {
+    background: rgba(143, 199, 255, 0.08);
+    color: #dcedff;
+    border-color: rgba(143, 199, 255, 0.72);
+    box-shadow: 0 10px 24px rgba(80,145,255,0.12), 0 0 18px rgba(80,145,255,0.12);
+    transform: translateY(-1px);
+  }
+  .empty-state {
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px;
+    text-align: center;
+    color: #888;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  }
+</style>
+
+<div class="page">
+  <div class="hero">
+    <h1>Archivio Errori</h1>
+    <p>Questa pagina raccoglie i pattern dove sbagli più spesso durante il training. L’obiettivo non è solo “vedere l’errore”, ma trasformarlo in una coda concreta di ripasso mirato.</p>
+    <div class="hero-stats">
+      <span class="hero-pill">Errori aperture: {{ opening_error_count }}</span>
+      <span class="hero-pill">Errori finali: {{ final_error_count }}</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filters">
+      <a href="{% url 'errori' %}?kind=tutti" class="filter-tab {% if kind == 'tutti' %}active{% endif %}">Tutti</a>
+      <a href="{% url 'errori' %}?kind=aperture" class="filter-tab {% if kind == 'aperture' %}active{% endif %}">Aperture</a>
+      <a href="{% url 'errori' %}?kind=finali" class="filter-tab {% if kind == 'finali' %}active{% endif %}">Finali</a>
+    </div>
+    <div style="font-size:13px;color:var(--text-muted);">Ordinati per frequenza e poi per recenza.</div>
+  </div>
+
+  {% if error_entries %}
+    <div class="results">
+      {% for item in error_entries %}
+        <div class="error-card">
+          <div class="card-main">
+            <div class="card-topline">
+              <span class="card-title">{{ item.title }}</span>
+              <span class="card-subtitle">{{ item.subtitle }}</span>
+            </div>
+
+            <div class="move-row">
+              <div class="move-box bad">Hai giocato: {{ item.wrong_move }}</div>
+              <div class="move-box good">Era giusto: {{ item.expected_move }}</div>
+            </div>
+
+            <div class="fen-box">{{ item.fen }}</div>
+
+            <div class="card-meta">
+              <span class="pill kind">{{ item.kind }}</span>
+              <span class="pill count">{{ item.occurrence_count }} occorrenze</span>
+              <span class="pill">Ultimo avvistamento: {{ item.last_seen|date:"d/m/Y H:i" }}</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <a class="btn-train" href="{{ item.train_url }}">
+              <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg>
+              <span>Riprova Subito</span>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2 style="margin-top:0;">Nessun errore registrato</h2>
+      <p>Quando durante il training sbagli una mossa, qui troverai FEN, mossa sbagliata, mossa corretta e frequenza.</p>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}
