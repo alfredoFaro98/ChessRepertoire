@@ -4,245 +4,327 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Allenamento — {{ line.root.nome }} · Linea {{ line.numero }}</title>
-
-<!-- Anti-FOUC dark mode -->
+<title>Allenamento - {{ line.root.nome }} - Linea {{ line.numero }}</title>
 <script>(function(){ if(localStorage.getItem('darkMode')!=='0') document.documentElement.classList.add('dark'); })();</script>
 
 <link rel="icon" type="image/png" href="{% static 'repertoire/img/header_logo.png' %}">
 <link rel="stylesheet" href="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.css' %}">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
+
   body {
-    background:#f5f5f5;
-    font-family:'Segoe UI', Arial, sans-serif;
-    margin:0;
-    padding:0;
-    transition: background .25s, color .25s;
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #e5edf5;
+    min-height: 100dvh;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(47,111,94,0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(61,120,180,0.12), transparent 24%),
+      linear-gradient(180deg, #0f141a 0%, #141b22 100%);
   }
 
-  /* ── Dark mode overrides ── */
-  html.dark body           { background: #121212; color: #e0e0e0; }
-  html.dark .header-bar    { background: #0d1117; }
-  html.dark .container     { background: transparent; }
-  html.dark .btn.light     { background: #2a2a3a; color: #e0e0e0; }
-  html.dark .btn.light:hover { background: #333; }
-  html.dark .bar           { background: #333; }
-  html.dark .muted         { color: #aaa; }
-  html.dark .arrow         { color: #90caf9; }
-  html.dark .arrow:hover   { color: #bbdefb; }
-
-  /* ── Move list laterale ── */
-  .board-with-moves {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 10px;
-  }
-  .movelist {
-    width: 100px;
-    max-height: 480px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding-top: 4px;
-  }
-  .movelist-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #888;
-    margin-bottom: 4px;
-    text-align: center;
-  }
-  .move-chip {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-family: 'Segoe UI', monospace;
-  }
-  .move-chip.mine {
-    background: rgba(67,160,71,0.13);
-  }
-  .move-chip.opponent {
-    background: rgba(25,118,210,0.11);
-  }
-  html.dark .move-chip.mine     { background: rgba(67,160,71,0.22); }
-  html.dark .move-chip.opponent { background: rgba(25,118,210,0.22); }
-  .move-num {
-    font-size: 11px;
-    opacity: 0.55;
-    min-width: 16px;
-    flex-shrink: 0;
-  }
-  .move-san {
-    font-size: 14px;
-    font-weight: 700;
-    color: inherit;
-  }
-  .mine  .move-san { color: #2e7d32; }
-  .opponent .move-san { color: #1565c0; }
-  html.dark .mine     .move-san { color: #81c784; }
-  html.dark .opponent .move-san { color: #90caf9; }
-  @media (max-width: 680px) { .movelist { display: none; } }
-
-  .header-bar {
-    width: 100%;
-    background: #2c3e50;
-    color: white;
-    padding: 10px 20px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 100;
-  }
-  .breadcrumb-header a {
-    text-decoration: none;
-    color: #a5d6a7;
-    font-weight: 600;
-  }
-  .breadcrumb-header a:hover { color: #81c784; }
-
-  .container {
-    margin-top: 90px;
-    text-align:center;
-    padding: 0 16px 40px;
+  html:not(.dark) body {
+    color: #1f2937;
+    background:
+      radial-gradient(circle at top left, rgba(47,111,94,0.12), transparent 28%),
+      radial-gradient(circle at top right, rgba(61,120,180,0.10), transparent 24%),
+      linear-gradient(180deg, #eef2f6 0%, #e4e9ee 100%);
   }
 
-  #board {
-    /* width set dynamically by JS */
-    margin: 0 auto;
-    border:4px solid #2c3e50;
-    border-radius:8px;
-    box-shadow:0 6px 20px rgba(0,0,0,0.25);
-  }
-  .white-1e1d7 { background-color:#eeeed2; }
-  .black-3c85d { background-color:#769656; }
-
-  .toolbar {
-    margin:16px 0;
-    display:flex;
-    gap:10px;
-    justify-content:center;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-
-  .btn {
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-size:15px;
-    font-weight:600;
-    letter-spacing:0.2px;
-    border:none;
-    border-radius:8px;
-    padding:10px 18px;
-    cursor:pointer;
-    transition:all 0.2s ease-in-out;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  }
-
-  .btn.primary {
-    background: transparent;
-    color: #8fc7ff;
-    border: 1px solid rgba(143, 199, 255, 0.42);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .btn.primary:hover {
-    background: rgba(143, 199, 255, 0.08);
-    color: #dcedff;
-    border-color: rgba(143, 199, 255, 0.72);
-    box-shadow: 0 10px 24px rgba(80,145,255,0.12), 0 0 18px rgba(80,145,255,0.12);
-  }
-
-  .btn.success {
-    background: transparent;
-    color: #8fd4a3;
-    border: 1px solid rgba(143, 212, 163, 0.42);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .btn.success:hover {
-    background: rgba(143, 212, 163, 0.08);
-    color: #d7f7e1;
-    border-color: rgba(143, 212, 163, 0.7);
-    box-shadow: 0 10px 24px rgba(95, 207, 128, 0.12), 0 0 18px rgba(95, 207, 128, 0.12);
-  }
-
-  .btn.light { background:#e0e0e0; color:#333; }
-  .btn.light:hover { background:#d5d5d5; }
-  .btn:active { transform:scale(0.97); }
   .ui-icon {
     width: 24px;
     height: 24px;
     flex: 0 0 auto;
   }
 
-  .muted { color:#666; font-size:14px; }
+  .page-shell {
+    height: 100dvh;
+    padding: 12px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .header-bar {
+    padding: 12px 16px;
+    border-radius: 18px;
+    background: rgba(24,33,43,0.92);
+    border: 1px solid rgba(148,163,184,0.14);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.16);
+    backdrop-filter: blur(14px);
+  }
+
+  html:not(.dark) .header-bar {
+    background: rgba(255,255,255,0.9);
+  }
+
+  .breadcrumb-header a {
+    text-decoration: none;
+    color: #a5d6a7;
+    font-weight: 700;
+  }
+
+  .breadcrumb-header a:hover { color: #81c784; }
+  .breadcrumb-header span { color: inherit; }
+
+  #darkToggle {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer;
+    padding: 7px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+  }
+
+  html:not(.dark) #darkToggle {
+    border-color: rgba(15,23,42,0.12);
+  }
+
+  .container {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 390px;
+    gap: 12px;
+  }
+
+  .panel {
+    min-height: 0;
+    border-radius: 22px;
+    border: 1px solid rgba(148,163,184,0.14);
+    box-shadow: 0 18px 38px rgba(0,0,0,0.14);
+    backdrop-filter: blur(14px);
+  }
+
+  .board-stage {
+    padding: 18px;
+    background: rgba(15,20,26,0.82);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  html:not(.dark) .board-stage {
+    background: rgba(255,255,255,0.8);
+  }
+
+  .board-stage-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+    color: #8fd4a3;
+    border: 1px solid rgba(143,212,163,0.28);
+    background: rgba(143,212,163,0.08);
+    margin-bottom: 10px;
+  }
+
+  .board-stage-title {
+    margin: 0 0 6px;
+    font-size: 28px;
+    line-height: 1.04;
+    color: #f8fafc;
+  }
+
+  html:not(.dark) .board-stage-title { color: #18212b; }
+
+  .board-stage-body {
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .board-shell {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+  }
+
+  #board {
+    margin: 0;
+    border: 5px solid #2c3e50;
+    border-radius: 14px;
+    box-shadow: 0 16px 36px rgba(0,0,0,0.24);
+  }
+
+  .white-1e1d7 { background-color:#eeeed2; }
+  .black-3c85d { background-color:#769656; }
+
+  .sidebar {
+    padding: 14px;
+    background: rgba(15,20,26,0.84);
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  html:not(.dark) .sidebar {
+    background: rgba(255,255,255,0.84);
+  }
+
+  .nav-arrows,
+  .progress-panel,
+  .moves-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(148,163,184,0.14);
+    border-radius: 16px;
+  }
+
+  html:not(.dark) .nav-arrows,
+  html:not(.dark) .progress-panel,
+  html:not(.dark) .moves-card {
+    background: rgba(148,163,184,0.08);
+  }
 
   .nav-arrows {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:12px;
-    margin-bottom:16px;
-  }
-  .arrow {
-    width:42px;
-    height:42px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    user-select:none;
-    color:#2c3e50;
-    transition:0.2s;
-  }
-  .arrow:hover { color:#1976d2; transform:scale(1.08); }
-  .arrow.disabled { opacity:0.3; cursor:default; transform:none; }
-  .arrow .ui-icon {
-    width: 28px;
-    height: 28px;
-  }
-  #darkToggle {
-    background:none;
-    border:none;
-    cursor:pointer;
-    padding:6px;
-    border-radius:8px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    color:white;
-  }
-  #darkToggle .ui-icon {
-    width:26px;
-    height:26px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
   }
 
-  #feedback { font-size:18px; margin-top:12px; font-weight:700; min-height: 28px; }
-  .correct { color:#2e7d32; }
-  .wrong   { color:#c62828; }
+  .nav-label {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .arrow {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    color: inherit;
+    transition: transform .18s ease, color .18s ease;
+  }
+
+  .arrow:hover { color: #8fc7ff; transform: scale(1.06); }
+  .arrow.disabled { opacity: 0.3; cursor: default; transform: none; }
+  .arrow .ui-icon { width: 28px; height: 28px; }
+
+  .toolbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .mode-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .actions-toolbar .btn.success,
+  .actions-toolbar #nextLineBtn {
+    grid-column: span 2;
+  }
+
+  .btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .btn.primary {
+    background: transparent;
+    color: #8fc7ff;
+    border: 1px solid rgba(143,199,255,0.42);
+  }
+
+  .btn.primary:hover {
+    background: rgba(143,199,255,0.08);
+    color: #dcedff;
+    border-color: rgba(143,199,255,0.72);
+  }
+
+  #nextLineBtn.ready {
+    background: linear-gradient(135deg, rgba(59,130,246,0.95), rgba(96,165,250,0.98));
+    color: #f8fbff;
+    border-color: rgba(191,219,254,0.95);
+    box-shadow: 0 0 0 1px rgba(191,219,254,0.18), 0 16px 30px rgba(37,99,235,0.34);
+    animation: next-line-pulse 1.6s ease-in-out infinite;
+  }
+
+  #nextLineBtn.ready:hover {
+    background: linear-gradient(135deg, rgba(37,99,235,1), rgba(96,165,250,1));
+    color: #ffffff;
+    border-color: rgba(219,234,254,1);
+    transform: translateY(-1px);
+  }
+
+  html:not(.dark) #nextLineBtn.ready {
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
+    color: #ffffff;
+    border-color: rgba(191,219,254,1);
+    box-shadow: 0 0 0 1px rgba(59,130,246,0.12), 0 14px 28px rgba(59,130,246,0.24);
+  }
+
+  @keyframes next-line-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgba(191,219,254,0.18), 0 16px 30px rgba(37,99,235,0.34);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(96,165,250,0.18), 0 18px 34px rgba(37,99,235,0.42);
+    }
+  }
+
+  .btn.success {
+    background: transparent;
+    color: #8fd4a3;
+    border: 1px solid rgba(143,212,163,0.42);
+  }
+
+  .btn.success:hover {
+    background: rgba(143,212,163,0.08);
+    color: #d7f7e1;
+    border-color: rgba(143,212,163,0.7);
+  }
+
+  .btn.light {
+    background: rgba(148,163,184,0.12);
+    color: #e2e8f0;
+    border: 1px solid rgba(148,163,184,0.18);
+  }
+
+  html:not(.dark) .btn.light {
+    background: rgba(255,255,255,0.72);
+    color: #334155;
+  }
+
+  .btn.light:hover { background: rgba(148,163,184,0.18); }
 
   .progress-panel {
-    width: min(480px, calc(100vw - 40px));
-    margin: 14px auto 0;
-    text-align: left;
-    background: rgba(255,255,255,0.94);
-    border: 1px solid rgba(44,62,80,0.12);
-    border-radius: 14px;
+    width: 100%;
     padding: 14px;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
   }
-  html.dark .progress-panel {
-    background: #182028;
-    border-color: #334155;
-  }
+
   .progress-panel-head {
     display:flex;
     justify-content:space-between;
@@ -251,38 +333,40 @@
     flex-wrap:wrap;
     margin-bottom:10px;
   }
+
   .progress-panel-title {
     font-size:14px;
     font-weight:800;
-    color:#2c3e50;
     margin-bottom:4px;
   }
-  html.dark .progress-panel-title { color:#e5e7eb; }
-  .progress-panel-meta {
+
+  .progress-panel-meta,
+  .progress-session {
     font-size:13px;
-    color:#666;
+    color:#9ca3af;
   }
-  html.dark .progress-panel-meta { color:#9ca3af; }
+
+  html:not(.dark) .progress-panel-meta,
+  html:not(.dark) .progress-session { color:#64748b; }
+
   .progress-panel-percent {
     font-size:24px;
     font-weight:800;
-    color:#2f6f5e;
+    color:#9fe3bd;
     line-height:1;
   }
-  html.dark .progress-panel-percent { color:#9fe3bd; }
+
+  html:not(.dark) .progress-panel-percent { color:#2f6f5e; }
+
   .progress-track {
     width: 100%;
     height: 10px;
-    margin-top: 2px;
     border-radius: 999px;
     overflow: hidden;
     background: rgba(148,163,184,0.18);
     border: 1px solid rgba(148,163,184,0.14);
   }
-  html.dark .progress-track {
-    background: rgba(71,85,105,0.5);
-    border-color: rgba(71,85,105,0.55);
-  }
+
   .progress-fill {
     width: 0%;
     height: 100%;
@@ -291,22 +375,22 @@
     box-shadow: 0 0 18px rgba(97,196,139,0.25);
     transition: width .25s ease;
   }
+
   .progress-session {
-    margin-top:10px;
+    margin-top: 10px;
     display:flex;
     justify-content:space-between;
     gap:10px;
     flex-wrap:wrap;
-    font-size:13px;
-    color:#666;
   }
-  html.dark .progress-session { color:#9ca3af; }
+
   .progress-pills {
-    margin-top:10px;
+    margin-top: 10px;
     display:flex;
     gap:8px;
     flex-wrap:wrap;
   }
+
   .progress-pill {
     display:inline-flex;
     align-items:center;
@@ -314,118 +398,249 @@
     border-radius:999px;
     font-size:12px;
     font-weight:700;
-    color:#51606f;
-    background:rgba(148,163,184,0.08);
-    border:1px solid rgba(148,163,184,0.2);
-  }
-  html.dark .progress-pill {
     color:#cbd5e1;
     background:rgba(148,163,184,0.14);
-    border-color:#334155;
+    border:1px solid rgba(148,163,184,0.2);
   }
 
-  @media (max-width: 520px) {
-    .btn { font-size: 13px; padding: 8px 12px; }
-    .srs-btn { min-width: 64px; font-size: 13px; padding: 8px 12px; }
+  html:not(.dark) .progress-pill {
+    color:#51606f;
+    background:rgba(148,163,184,0.08);
+  }
+
+  #feedback {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(15,20,26,0.24);
+    border: 1px solid rgba(148,163,184,0.12);
+    font-size:14px;
+    font-weight:700;
+    min-height: 20px;
+    line-height: 1.4;
+  }
+
+  html:not(.dark) #feedback { background: rgba(255,255,255,0.62); }
+
+  .correct { color:#2e7d32; }
+  .wrong   { color:#c62828; }
+
+  .moves-card {
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 14px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .moves-card-head {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  .moves-grid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .moves-scroll {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    border-radius: 14px;
+    background: rgba(15,20,26,0.28);
+    border: 1px solid rgba(148,163,184,0.12);
+  }
+
+  html:not(.dark) .moves-scroll {
+    background: rgba(255,255,255,0.62);
+  }
+
+  .movelist {
+    width: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+  }
+
+  .movelist + .movelist {
+    border-left: 1px solid rgba(148,163,184,0.12);
+  }
+
+  .movelist-label {
+    position: sticky;
+    top: 0;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    background: rgba(15,20,26,0.78);
+    backdrop-filter: blur(8px);
+    z-index: 1;
+  }
+
+  html:not(.dark) .movelist-label {
+    background: rgba(255,255,255,0.9);
+  }
+
+  .move-chip {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-family: 'Segoe UI', monospace;
+  }
+
+  .move-chip.mine { background: rgba(67,160,71,0.13); }
+  .move-chip.opponent { background: rgba(25,118,210,0.11); }
+  .move-num { font-size: 11px; opacity: 0.55; min-width: 16px; flex-shrink: 0; }
+  .move-san { font-size: 14px; font-weight: 700; color: inherit; }
+  .mine .move-san { color: #81c784; }
+  .opponent .move-san { color: #90caf9; }
+  html:not(.dark) .mine .move-san { color: #2e7d32; }
+  html:not(.dark) .opponent .move-san { color: #1565c0; }
+
+  @media (max-width: 980px) {
+    body { overflow: auto; }
+    .page-shell { min-height: 100dvh; height: auto; }
+    .container { grid-template-columns: 1fr; }
+    .board-stage { min-height: 420px; }
+    .sidebar { grid-template-rows: auto auto auto auto auto; }
+  }
+
+  @media (max-width: 680px) {
+    .page-shell { padding: 10px; }
+    .board-stage { padding: 14px; }
+    .board-stage-title { font-size: 22px; }
+    .actions-toolbar { grid-template-columns: 1fr; }
+    .actions-toolbar .btn.success,
+    .actions-toolbar #nextLineBtn { grid-column: auto; }
+    .nav-arrows { flex-wrap: wrap; }
+    .nav-label { order: -1; width: 100%; }
   }
 </style>
 </head>
-<body>
+<body class="training-page">
 {% include "repertoire/includes/icon_sprite.html" %}
 
-<header class="header-bar">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-    <div class="breadcrumb-header">
-      <a href="{% url 'opening_list' %}">ChessRepertoire</a> &gt;
-      <a href="{% url 'opening_detail' line.root.id %}">{{ line.root.nome }}</a> &gt;
-      <span>Allenamento - Linea {{ line.numero }}</span>
-      <p id="comp-count" style="margin:2px 0 0;font-size:13px;opacity:0.8;">Completata {{ line.completamenti }} volte</p>
-    </div>
-    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
-  </div>
-</header>
-
-<div class="container">
-  <div class="nav-arrows">
-    {% if prev_line %}
-      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id prev_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
-    {% else %}
-      <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
-    {% endif %}
-    <span class="muted">Allenamento linea {{ line.numero }}</span>
-    {% if next_line %}
-      <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
-    {% else %}
-      <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
-    {% endif %}
-  </div>
-
-  <div class="toolbar">
-    <button id="asWhite" class="btn light">Allena il Bianco</button>
-    <button id="asBlack" class="btn light">Allena il Nero</button>
-  </div>
-  <p class="muted" style="margin-top:-6px;margin-bottom:18px;">Scorciatoie: trascina o tocca i pezzi, usa il suggerimento dopo un errore e premi il bottone della prossima linea appena completi la sequenza.</p>
-
-  <div id="progressPanel" class="progress-panel">
-    <div class="progress-panel-head">
-      <div>
-        <div class="progress-panel-title">Completamento linea</div>
-        <div id="progressSummary" class="progress-panel-meta">0/0 mosse corrette</div>
+<div class="page-shell">
+  <header class="header-bar">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div class="breadcrumb-header">
+        <a href="{% url 'opening_list' %}">ChessRepertoire</a> &gt;
+        <a href="{% url 'opening_detail' line.root.id %}">{{ line.root.nome }}</a> &gt;
+        <span>Allenamento - Linea {{ line.numero }}</span>
+        <p id="comp-count" style="margin:2px 0 0;font-size:13px;opacity:0.8;">Completata {{ line.completamenti }} volte</p>
       </div>
-      <div id="progressPct" class="progress-panel-percent">0%</div>
+      <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
     </div>
-    <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-    <div class="progress-session">
-      <span id="sessionStats">0 corrette · 0 errori</span>
-      <span id="sessionTarget">Allenando il Bianco</span>
-    </div>
-    <div class="progress-pills">
-      <span class="progress-pill">Completamenti: <strong id="comp-count-inline" style="margin-left:6px;">{{ line.completamenti }}</strong></span>
-      <span class="progress-pill">Accuratezza: <strong id="lineAccuracy" style="margin-left:6px;">{{ line.accuracy|floatformat:1 }}%</strong></span>
-      <span class="progress-pill">Errori storici: <strong id="lineMistakes" style="margin-left:6px;">{{ line.mistakes }}</strong></span>
-    </div>
-  </div>
+  </header>
 
-  <div class="board-with-moves">
-    <!-- Colonna sinistra: mie mosse -->
-    <div class="movelist" id="movelistRight">
-      <div class="movelist-label">Tu</div>
-    </div>
+  <div class="container">
+    <section class="panel board-stage">
+      <div class="board-stage-head">
+        <div class="board-stage-label">Allenamento attivo</div>
+        <h1 class="board-stage-title">{{ line.root.nome }} - Linea {{ line.numero }}</h1>
+      </div>
 
-    <!-- wrapper per overlay SVG freccia hint -->
-    <div style="position:relative; display:inline-block;">
-      <div id="board"></div>
-      <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
-        <defs>
-          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="rgba(220,50,50,0.92)"/>
-          </marker>
-        </defs>
-        <line id="hintLine" x1="0" y1="0" x2="0" y2="0"
-              stroke="rgba(220,50,50,0.92)" stroke-width="10" stroke-linecap="round"
-              marker-end="url(#arrowhead)"/>
-      </svg>
-    </div>
+      <div id="boardStage" class="board-stage-body">
+        <div id="boardShell" class="board-shell">
+          <div id="board"></div>
+          <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
+            <defs>
+              <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="rgba(220,50,50,0.92)"/>
+              </marker>
+            </defs>
+            <line id="hintLine" x1="0" y1="0" x2="0" y2="0"
+                  stroke="rgba(220,50,50,0.92)" stroke-width="10" stroke-linecap="round"
+                  marker-end="url(#arrowhead)"/>
+          </svg>
+        </div>
+      </div>
+    </section>
 
-    <!-- Colonna destra: mosse avversario -->
-    <div class="movelist" id="movelistLeft">
-      <div class="movelist-label">Avversario</div>
-    </div>
-  </div>
-  <div class="bar"><div id="progress"></div></div>
-  <div id="feedback"></div>
+    <aside class="panel sidebar">
+      <div class="nav-arrows">
+        {% if prev_line %}
+          <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id prev_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
+        {% else %}
+          <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg></span>
+        {% endif %}
+        <span class="nav-label">Allenamento linea {{ line.numero }}</span>
+        {% if next_line %}
+          <span class="arrow" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+        {% else %}
+          <span class="arrow disabled"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg></span>
+        {% endif %}
+      </div>
 
-  <div class="toolbar">
-    <button id="restartBtn" class="btn success" style="display:none;"><svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ricomincia</span></button>
-    {% if next_line %}
-    <button id="nextLineBtn" class="btn primary" style="display:none;" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg><span>Vai alla prossima</span></button>
-    {% endif %}
-    <button class="btn light" onclick="window.location.href='{% url 'line_detail' line.root.id line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg><span>Dettaglio linea</span></button>
-    <button class="btn primary" onclick="window.location.href='{% url 'opening_detail' line.root.id %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg><span>Vai all'apertura</span></button>
+      <div class="toolbar mode-toolbar">
+        <button id="asWhite" class="btn light">Allena il Bianco</button>
+        <button id="asBlack" class="btn light">Allena il Nero</button>
+      </div>
+
+      <div id="progressPanel" class="progress-panel">
+        <div class="progress-panel-head">
+          <div>
+            <div class="progress-panel-title">Completamento linea</div>
+            <div id="progressSummary" class="progress-panel-meta">0/0 mosse corrette</div>
+          </div>
+          <div id="progressPct" class="progress-panel-percent">0%</div>
+        </div>
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+        <div class="progress-session">
+          <span id="sessionStats">0 corrette - 0 errori</span>
+          <span id="sessionTarget">Allenando il Bianco</span>
+        </div>
+        <div class="progress-pills">
+          <span class="progress-pill">Completamenti: <strong id="comp-count-inline" style="margin-left:6px;">{{ line.completamenti }}</strong></span>
+          <span class="progress-pill">Accuratezza: <strong id="lineAccuracy" style="margin-left:6px;">{{ line.accuracy|floatformat:1 }}%</strong></span>
+          <span class="progress-pill">Errori storici: <strong id="lineMistakes" style="margin-left:6px;">{{ line.mistakes }}</strong></span>
+        </div>
+        <div id="feedback"></div>
+      </div>
+
+      <div class="moves-card">
+        <div class="moves-card-head">Mosse</div>
+        <div id="movesScroll" class="moves-scroll">
+          <div class="moves-grid">
+            <div class="movelist" id="movelistRight">
+              <div class="movelist-label">Tu</div>
+            </div>
+            <div class="movelist" id="movelistLeft">
+              <div class="movelist-label">Avversario</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar actions-toolbar">
+        <button id="restartBtn" class="btn success" style="display:none;"><svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ricomincia</span></button>
+        {% if next_line %}
+        <button id="nextLineBtn" class="btn primary" style="display:none;" onclick="window.location.href='{% url 'line_training' line.root.id next_line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg><span>Vai alla prossima</span></button>
+        {% endif %}
+        <button class="btn light" onclick="window.location.href='{% url 'line_detail' line.root.id line.numero %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-left"></use></svg><span>Dettaglio linea</span></button>
+        <button class="btn primary" onclick="window.location.href='{% url 'opening_detail' line.root.id %}'"><svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg><span>Vai all'apertura</span></button>
+      </div>
+    </aside>
   </div>
 </div>
 
-<!-- Librerie -->
 <script src="{% static 'vendor/jquery/jquery-3.7.1.min.js' %}"></script>
 <script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
 <script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
@@ -443,26 +658,27 @@
     .split(/\s+/)
     .filter(x => x && !['1-0','0-1','1/2-1/2','*'].includes(x));
 
-  const game        = new window.Chess();
+  const game = new window.Chess();
   const progressEl = document.getElementById('progressFill');
   const progressPctEl = document.getElementById('progressPct');
   const progressSummaryEl = document.getElementById('progressSummary');
   const sessionStatsEl = document.getElementById('sessionStats');
   const sessionTargetEl = document.getElementById('sessionTarget');
-  const progressPanelEl = document.getElementById('progressPanel');
-  const feedback    = document.getElementById('feedback');
-  const restartBtn  = document.getElementById('restartBtn');
+  const feedback = document.getElementById('feedback');
+  const restartBtn = document.getElementById('restartBtn');
   const nextLineBtn = document.getElementById('nextLineBtn');
   const compCountInline = document.getElementById('comp-count-inline');
   const lineAccuracyEl = document.getElementById('lineAccuracy');
   const lineMistakesEl = document.getElementById('lineMistakes');
   const trainingEventUrl = "{{ training_event_url }}";
   const startingTurn = 'w';
-  let sideToTrain    = 'w';
-  let idx            = 0;
+  const boardStageEl = document.getElementById('boardStage');
+  const boardShellEl = document.getElementById('boardShell');
+  let sideToTrain = 'w';
+  let idx = 0;
   let selectedSquare = null;
   let lineaCompletata = false;
-  let arrowTimeout   = null;
+  let arrowTimeout = null;
   let sessionWrongAttempts = 0;
   let sessionCorrectMoves = 0;
   let completionSent = false;
@@ -499,7 +715,7 @@
     try {
       localStorage.setItem('lastTrainingSession', JSON.stringify({
         url: window.location.pathname,
-        title: `${document.title} · ${sideToTrain === 'w' ? 'Bianco' : 'Nero'}`,
+        title: `${document.title} - ${sideToTrain === 'w' ? 'Bianco' : 'Nero'}`,
         kind: 'Apertura',
         savedAt: new Date().toISOString(),
       }));
@@ -508,12 +724,12 @@
     }
   }
 
-  // ─── Move list laterale ───────────────────────────────────────────────────
-  const mlLeft  = document.getElementById('movelistLeft');
+  const mlLeft = document.getElementById('movelistLeft');
   const mlRight = document.getElementById('movelistRight');
+  const movesScrollEl = document.getElementById('movesScroll');
 
   function clearMovelists() {
-    mlLeft.innerHTML  = '<div class="movelist-label">Avversario</div>';
+    mlLeft.innerHTML = '<div class="movelist-label">Avversario</div>';
     mlRight.innerHTML = '<div class="movelist-label">Tu</div>';
   }
 
@@ -523,12 +739,17 @@
     el.innerHTML = `<span class="move-num">${num}.</span><span class="move-san">${san}</span>`;
     const col = isMyMove ? mlRight : mlLeft;
     col.appendChild(el);
-    col.scrollTop = col.scrollHeight;
+    movesScrollEl.scrollTop = movesScrollEl.scrollHeight;
   }
 
-  // ─── Dimensioni responsive ─────────────────────────────────────────────────
   function getBoardSize() {
-    return Math.min(480, window.innerWidth - 40);
+    const stageRect = boardStageEl.getBoundingClientRect();
+    const fallbackWidth = Math.min(560, window.innerWidth - 32);
+    if (!stageRect.width || !stageRect.height) return fallbackWidth;
+    if (window.innerWidth <= 980) {
+      return Math.max(260, Math.min(560, Math.floor(stageRect.width)));
+    }
+    return Math.max(300, Math.floor(Math.min(stageRect.width, stageRect.height)));
   }
 
   const board = Chessboard('board', {
@@ -536,51 +757,54 @@
     position: 'start',
     orientation: 'white',
     pieceTheme: piece => PIECE_BASE + piece + '.png',
-    onDragStart:        onDragStart,
-    onDrop:             onDrop,
-    onMouseoverSquare:  onMouseoverSquare,
-    onMouseoutSquare:   removeHighlights,
-    onSnapEnd:          () => board.position(game.fen()),
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onMouseoverSquare: onMouseoverSquare,
+    onMouseoutSquare: removeHighlights,
+    onSnapEnd: () => board.position(game.fen()),
   });
 
-  // Imposta larghezza iniziale e al resize
   function resizeBoard() {
     const size = getBoardSize();
+    boardShellEl.style.width = size + 'px';
+    boardShellEl.style.height = size + 'px';
     document.getElementById('board').style.width = size + 'px';
     board.resize();
-    progressPanelEl.style.width = size + 'px';
   }
+
   window.addEventListener('resize', resizeBoard);
-  resizeBoard();
+  window.addEventListener('orientationchange', resizeBoard);
+  window.requestAnimationFrame(resizeBoard);
 
   setSide('w');
   document.getElementById('asWhite').onclick = () => setSide('w');
   document.getElementById('asBlack').onclick = () => setSide('b');
 
-  // ─── Freccia hint ────────────────────────────────────────────────────────
   function showHintArrow(fromSq, toSq) {
     const bSize = getBoardSize();
-    const svg   = document.getElementById('hintArrowSvg');
-    const line  = document.getElementById('hintLine');
-    svg.setAttribute('width',  bSize);
+    const svg = document.getElementById('hintArrowSvg');
+    const line = document.getElementById('hintLine');
+    svg.setAttribute('width', bSize);
     svg.setAttribute('height', bSize);
 
     const isFlipped = board.orientation() === 'black';
-    const sqSize    = bSize / 8;
-    const FILES     = 'abcdefgh';
+    const sqSize = bSize / 8;
+    const FILES = 'abcdefgh';
 
     function sqXY(sq) {
       const col = FILES.indexOf(sq[0]);
-      const row = parseInt(sq[1]) - 1;
+      const row = parseInt(sq[1], 10) - 1;
       return isFlipped
         ? { x: (7 - col) * sqSize + sqSize / 2, y: row * sqSize + sqSize / 2 }
-        : { x: col * sqSize + sqSize / 2,        y: (7 - row) * sqSize + sqSize / 2 };
+        : { x: col * sqSize + sqSize / 2, y: (7 - row) * sqSize + sqSize / 2 };
     }
 
-    const from = sqXY(fromSq), to = sqXY(toSq);
-    const dx = to.x - from.x, dy = to.y - from.y;
+    const from = sqXY(fromSq);
+    const to = sqXY(toSq);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const f   = len > 30 ? (len - 22) / len : 1;
+    const f = len > 30 ? (len - 22) / len : 1;
 
     line.setAttribute('x1', from.x);
     line.setAttribute('y1', from.y);
@@ -607,21 +831,24 @@
     idx = 0;
     selectedSquare = null;
     restartBtn.style.display = 'none';
-    if (nextLineBtn) nextLineBtn.style.display = 'none';
+    if (nextLineBtn) {
+      nextLineBtn.style.display = 'none';
+      nextLineBtn.classList.remove('ready');
+    }
     sessionWrongAttempts = 0;
     sessionCorrectMoves = 0;
     completionSent = false;
     clearMovelists();
-    setFeedback(`Tocca al ${side==='w'?'Bianco':'Nero'} - gioca la mossa corretta`, '');
+    setFeedback(`Tocca al ${side === 'w' ? 'Bianco' : 'Nero'} - gioca la mossa corretta`, '');
     updateProgress();
     rememberTrainingSession();
     if (side === 'b' && movesSAN.length) {
       try {
         const autoMv = game.move(movesSAN[idx]);
-        if (autoMv) addMoveChip(autoMv.san, false, Math.floor(idx/2) + 1);
+        if (autoMv) addMoveChip(autoMv.san, false, Math.floor(idx / 2) + 1);
         idx++;
         board.position(game.fen());
-      } catch(e) { console.warn(e); }
+      } catch (e) { console.warn(e); }
     }
   }
 
@@ -629,13 +856,16 @@
     feedback.className = cls || '';
     feedback.textContent = text;
   }
+
   function moverForIndex(index) {
     if (index % 2 === 0) return startingTurn;
     return startingTurn === 'w' ? 'b' : 'w';
   }
+
   function getRequiredMoveCount() {
     return movesSAN.filter((_, index) => moverForIndex(index) === sideToTrain).length;
   }
+
   function updateProgress() {
     const requiredMoves = getRequiredMoveCount();
     const completedMoves = Math.min(sessionCorrectMoves, requiredMoves);
@@ -643,25 +873,31 @@
     progressEl.style.width = percent + '%';
     progressPctEl.textContent = percent + '%';
     progressSummaryEl.textContent = `${completedMoves}/${requiredMoves} mosse corrette`;
-    sessionStatsEl.textContent = `${sessionCorrectMoves} corrette · ${sessionWrongAttempts} errori`;
+    sessionStatsEl.textContent = `${sessionCorrectMoves} corrette - ${sessionWrongAttempts} errori`;
     sessionTargetEl.textContent = `Allenando il ${sideToTrain === 'w' ? 'Bianco' : 'Nero'}`;
   }
+
   function squareEl(sq) { return document.querySelector('#board .square-' + sq); }
+
   function clearHighlights() {
     document.querySelectorAll('#board .square-55d63').forEach(el => el.style.background = '');
   }
+
   function highlight(sq) {
-    const el = squareEl(sq); if (!el) return;
+    const el = squareEl(sq);
+    if (!el) return;
     const dark = el.classList.contains('black-3c85d');
     const base = dark ? '#769656' : '#eeeed2';
     el.style.background = `radial-gradient(circle, rgba(0,184,212,.9) 22%, ${base} 23%)`;
   }
+
   function paintSelectedMoves() {
     if (!selectedSquare) return;
     clearHighlights();
     highlight(selectedSquare);
     game.moves({ square: selectedSquare, verbose: true }).forEach(m => highlight(m.to));
   }
+
   function removeHighlights() {
     if (selectedSquare) {
       paintSelectedMoves();
@@ -670,7 +906,6 @@
     clearHighlights();
   }
 
-  // ─── Logica mossa condivisa ────────────────────────────────────────────────
   function processMove(source, target) {
     const currentFen = game.fen();
     const mv = game.move({ from: source, to: target, promotion: 'q' });
@@ -691,16 +926,15 @@
       });
       setFeedback(`Sbagliato: dovevi giocare ${expected || '-'}`, 'wrong');
       board.position(game.fen());
-      // Mostra freccia sulla mossa corretta
       try {
         const tempGame = new Chess(game.fen());
         const hint = tempGame.move(expected, { sloppy: true });
         if (hint) showHintArrow(hint.from, hint.to);
-      } catch(e) {}
+      } catch (e) {}
       return false;
     }
 
-    const myMoveNum = Math.floor(idx/2) + 1;
+    const myMoveNum = Math.floor(idx / 2) + 1;
     idx++;
     sessionCorrectMoves += 1;
     addMoveChip(mv.san, true, myMoveNum);
@@ -711,19 +945,22 @@
 
     if (idx < movesSAN.length) {
       try {
-        const replyMoveNum = Math.floor(idx/2) + 1;
+        const replyMoveNum = Math.floor(idx / 2) + 1;
         const replyMv = game.move(movesSAN[idx]);
         if (replyMv) addMoveChip(replyMv.san, false, replyMoveNum);
         idx++;
         board.position(game.fen());
         updateProgress();
-      } catch(e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
+      } catch (e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
     }
 
     if (idx >= movesSAN.length) {
       setFeedback('Linea completata.', 'correct');
       restartBtn.style.display = 'inline-flex';
-      if (nextLineBtn) nextLineBtn.style.display = 'inline-flex';
+      if (nextLineBtn) {
+        nextLineBtn.style.display = 'inline-flex';
+        nextLineBtn.classList.add('ready');
+      }
       lineaCompletata = true;
       if (!completionSent) {
         completionSent = true;
@@ -735,26 +972,17 @@
         }).then(result => {
           if (result && result.completamenti) {
             const compCount = document.getElementById('comp-count');
-            if (compCount) {
-              compCount.textContent = `Completata ${result.completamenti} volte`;
-            }
-            if (compCountInline) {
-              compCountInline.textContent = result.completamenti;
-            }
+            if (compCount) compCount.textContent = `Completata ${result.completamenti} volte`;
+            if (compCountInline) compCountInline.textContent = result.completamenti;
           }
-          if (result && lineAccuracyEl) {
-            lineAccuracyEl.textContent = `${Number(result.accuracy || 0).toFixed(1)}%`;
-          }
-          if (result && lineMistakesEl) {
-            lineMistakesEl.textContent = result.mistakes;
-          }
+          if (result && lineAccuracyEl) lineAccuracyEl.textContent = `${Number(result.accuracy || 0).toFixed(1)}%`;
+          if (result && lineMistakesEl) lineMistakesEl.textContent = result.mistakes;
         });
       }
     }
     return true;
   }
 
-  // ─── Drag & Drop ──────────────────────────────────────────────────────────
   function onDragStart(source, piece) {
     if (game.game_over() || lineaCompletata) return false;
     if (game.turn() !== sideToTrain) return false;
@@ -769,18 +997,16 @@
     if (!processMove(source, target)) return 'snapback';
   }
 
-  // ─── Click-to-move ────────────────────────────────────────────────────────
-  // chessboard.js con draggable:true blocca i click sui pezzi,
-  // quindi usiamo mousedown (capture) + mouseup per rilevare i click.
-  let _clickState = null;
+  let clickState = null;
 
   function handleInputStart(event) {
     const squareNode = event.target.closest('.square-55d63');
-    if (!squareNode) { _clickState = null; return; }
+    if (!squareNode) { clickState = null; return; }
     const squareClass = Array.from(squareNode.classList).find(c => c.startsWith('square-') && c !== 'square-55d63');
     if (!squareClass) return;
-    
-    let x, y;
+
+    let x;
+    let y;
     if (event.touches && event.touches.length > 0) {
       x = event.touches[0].clientX;
       y = event.touches[0].clientY;
@@ -788,17 +1014,18 @@
       x = event.clientX;
       y = event.clientY;
     }
-    _clickState = { square: squareClass.replace('square-', ''), x: x, y: y };
+    clickState = { square: squareClass.replace('square-', ''), x: x, y: y };
   }
 
   const boardElNode = document.getElementById('board');
   boardElNode.addEventListener('mousedown', handleInputStart, true);
-  boardElNode.addEventListener('touchstart', handleInputStart, {capture: true, passive: true});
+  boardElNode.addEventListener('touchstart', handleInputStart, { capture: true, passive: true });
 
   function handleInputEnd(event) {
-    if (!_clickState) return;
-    
-    let x, y;
+    if (!clickState) return;
+
+    let x;
+    let y;
     if (event.changedTouches && event.changedTouches.length > 0) {
       x = event.changedTouches[0].clientX;
       y = event.changedTouches[0].clientY;
@@ -806,12 +1033,12 @@
       x = event.clientX;
       y = event.clientY;
     }
-    
-    const dx = Math.abs(x - _clickState.x);
-    const dy = Math.abs(y - _clickState.y);
-    const square = _clickState.square;
-    _clickState = null;
-    if (dx > 8 || dy > 8) return; // era un drag, non un click
+
+    const dx = Math.abs(x - clickState.x);
+    const dy = Math.abs(y - clickState.y);
+    const square = clickState.square;
+    clickState = null;
+    if (dx > 8 || dy > 8) return;
 
     if (game.game_over() || lineaCompletata) return;
     if (game.turn() !== sideToTrain) return;
@@ -849,7 +1076,6 @@
   }
 
   restartBtn.addEventListener('click', () => setSide(sideToTrain));
-
 })();
 </script>
 
@@ -857,11 +1083,15 @@
 (function(){
   var btn = document.getElementById('darkToggle');
   if (!btn) return;
-  btn.innerHTML = document.documentElement.classList.contains('dark') ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>' : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+  btn.innerHTML = document.documentElement.classList.contains('dark')
+    ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+    : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
   btn.addEventListener('click', function(){
     var isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('darkMode', isDark ? '1' : '0');
-    btn.innerHTML = isDark ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>' : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
+    btn.innerHTML = isDark
+      ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-sun"></use></svg>'
+      : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-moon"></use></svg>';
   });
 })();
 </script>
