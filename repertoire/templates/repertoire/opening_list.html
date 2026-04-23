@@ -156,6 +156,53 @@
   color: #d7f7e1;
   border-color: rgba(143, 212, 163, 0.75);
 }
+.summary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(143, 212, 163, 0.18), transparent 44%),
+    linear-gradient(180deg, #131a22 0%, #0c1117 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 18px rgba(0,0,0,0.14);
+  white-space: nowrap;
+}
+.summary-pill-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #d8f6e3;
+  background: linear-gradient(180deg, rgba(143, 212, 163, 0.22), rgba(143, 212, 163, 0.08));
+  border: 1px solid rgba(143, 212, 163, 0.2);
+  flex: 0 0 auto;
+}
+.summary-pill-icon .ui-icon {
+  width: 14px;
+  height: 14px;
+}
+.summary-pill-text {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #f4f7fb;
+}
+.summary-pill-ratio {
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.summary-pill-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(244, 247, 251, 0.92);
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -168,8 +215,9 @@
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   text-align: center;
-  padding-bottom: 10px;
+  padding-bottom: 0;
   border: 1px solid transparent;
+  cursor: pointer;
 }
 .card:hover {
   transform: scale(1.028);
@@ -267,13 +315,15 @@
   box-shadow: 0 0 16px rgba(34, 197, 94, 0.2);
 }
 .card h3 {
-  margin: 10px 0 5px 0;
+  margin: 10px 12px 4px;
   color: #2c3e50;
+  text-align: left;
 }
 .card p {
-  margin: 0 0 10px 0;
+  margin: 0 12px 6px;
   color: #555;
   font-size: 14px;
+  text-align: left;
 }
 .board-container {
   background: #dfe3e6;
@@ -282,9 +332,134 @@
 .line-count {
   color: #888;
   font-size: 13px;
-  margin-top: -4px;
 }
-@media (max-width: 640px) {
+
+.card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 12px 12px;
+  text-align: left;
+}
+
+.card-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-dl-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(95, 207, 128, 0.3);
+  background: rgba(95, 207, 128, 0.07);
+  color: #4CAF50;
+  text-decoration: none;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+}
+
+.card-dl-btn:hover {
+  background: rgba(95, 207, 128, 0.18);
+  border-color: rgba(95, 207, 128, 0.6);
+  color: #2d8c40;
+  transform: scale(1.1);
+}
+
+.card-dl-btn .ui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.row-dl-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(95, 207, 128, 0.3);
+  background: rgba(95, 207, 128, 0.07);
+  color: #4CAF50;
+  text-decoration: none;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+}
+
+.row-dl-btn:hover {
+  background: rgba(95, 207, 128, 0.18);
+  border-color: rgba(95, 207, 128, 0.6);
+  color: #2d8c40;
+  transform: scale(1.1);
+}
+
+.row-dl-btn .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.card-star-btn,
+.row-star-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  background: rgba(250, 204, 21, 0.06);
+  color: #b8a020;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.12s;
+  padding: 0;
+}
+
+.card-star-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.row-star-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+.card-star-btn:hover,
+.row-star-btn:hover {
+  background: rgba(250, 204, 21, 0.16);
+  border-color: rgba(250, 204, 21, 0.65);
+  color: #d4a000;
+  transform: scale(1.1);
+}
+
+.card-star-btn.active,
+.row-star-btn.active {
+  background: rgba(250, 204, 21, 0.18);
+  border-color: rgba(250, 204, 21, 0.7);
+  color: #f59e0b;
+}
+
+.card-star-btn.active .ui-icon path,
+.row-star-btn.active .ui-icon path {
+  fill: currentColor;
+}
+
+.card-star-btn .ui-icon,
+.row-star-btn .ui-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.row-star-btn .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+  @media (max-width: 640px) {
   .page {
     padding: 16px 12px;
   }
@@ -309,27 +484,81 @@
   }
   .card h3 {
     font-size: 15px;
-    margin: 8px 8px 4px;
+    margin: 8px 10px 3px;
   }
   .card p {
     font-size: 12px;
-    margin: 0 8px 8px;
+    margin: 0 10px 4px;
   }
   .line-count {
     font-size: 12px;
-    margin-top: 0;
+  }
+  .card-bottom {
+    padding: 6px 10px 10px;
+    gap: 2px;
+  }
+  .card-dl-btn,
+  .card-star-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+  }
+  .card-dl-btn .ui-icon,
+  .card-star-btn .ui-icon {
+    width: 13px;
+    height: 13px;
   }
   .board-container {
     padding: 4px;
   }
+  .summary-pill {
+    min-height: 40px;
+    padding: 0 12px;
+  }
+  .summary-pill-text {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .summary-pill-ratio {
+    font-size: 16px;
+  }
+  .summary-pill-label {
+    font-size: 12px;
+  }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 640px) {
+  .grid:not(.rows) .board-container {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
   .grid {
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .card h3 {
-    font-size: 14px;
+    font-size: 16px;
+    margin: 10px 12px 4px;
+  }
+  .card p {
+    font-size: 13px;
+    margin: 0 12px 6px;
+  }
+  .card-bottom {
+    padding: 8px 12px 12px;
+  }
+  .card-dl-btn,
+  .card-star-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .card-dl-btn .ui-icon,
+  .card-star-btn .ui-icon {
+    width: 15px;
+    height: 15px;
   }
 }
 </style>
@@ -375,12 +604,21 @@
         <option value="name" {% if sort_mode == 'name' %}selected{% endif %}>Nome</option>
         <option value="lines" {% if sort_mode == 'lines' %}selected{% endif %}>Numero linee</option>
       </select>
+      <div class="summary-pill" aria-label="Riepilogo linee allenate">
+        <span class="summary-pill-icon" aria-hidden="true">
+          <svg class="ui-icon"><use href="#icon-chart"></use></svg>
+        </span>
+        <div class="summary-pill-text">
+          <span class="summary-pill-ratio">{{ trained_opening_lines }}/{{ total_opening_lines }}</span>
+          <span class="summary-pill-label">linee allenate</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="grid {% if view_mode == 'row' %}rows{% endif %}">
     {% for item in openings %}
-      <a href="{% url 'opening_detail' item.obj.id %}" class="card">
+      <div class="card" data-href="{% url 'opening_detail' item.obj.id %}" data-id="{{ item.obj.id }}" data-preferito="{{ item.obj.preferito|lower }}" data-nome="{{ item.obj.nome|lower }}" data-num-linee="{{ item.num_linee }}" data-due-linee="{{ item.due_linee }}">
         <div class="board-container">
           {{ item.svg|safe }}
         </div>
@@ -389,6 +627,12 @@
             <div class="row-topline">
               <h3 class="row-title">{{ item.obj.nome }}</h3>
               <span class="row-badge">{{ item.num_linee }} linee</span>
+              <button type="button" class="row-star-btn{% if item.obj.preferito %} active{% endif %}" title="Preferito">
+                <svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>
+              </button>
+              <a href="{% url 'download_opening_lines' item.obj.id %}" class="row-dl-btn" title="Scarica PGN" download>
+                <svg class="ui-icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+              </a>
             </div>
             <div class="row-meta">
               <span class="meta-pill">{% if item.obj.difesa %}Difesa{% else %}Attacco{% endif %}</span>
@@ -407,10 +651,22 @@
         {% else %}
           <h3>{{ item.obj.nome }}</h3>
           <p>{{ item.obj.moves }}</p>
-          <div class="line-count">{{ item.num_linee }} linee totali</div>
-          <div class="line-count">{{ item.due_linee }} da ripassare oggi</div>
+          <div class="card-bottom">
+            <div class="card-bottom-row">
+              <span class="line-count">{{ item.num_linee }} linee totali</span>
+              <div style="display:flex;gap:5px;align-items:center;">
+                <button type="button" class="card-star-btn{% if item.obj.preferito %} active{% endif %}" title="Preferito">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>
+                </button>
+                <a href="{% url 'download_opening_lines' item.obj.id %}" class="card-dl-btn" title="Scarica PGN" download>
+                  <svg class="ui-icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+                </a>
+              </div>
+            </div>
+            <span class="line-count">{{ item.due_linee }} da ripassare oggi</span>
+          </div>
         {% endif %}
-      </a>
+      </div>
     {% empty %}
       <p>Nessuna apertura trovata.</p>
     {% endfor %}
@@ -580,6 +836,84 @@ document.addEventListener('click', event => {
   if (!event.target.closest('.search-bar')) {
     hideSuggestions();
   }
+});
+
+const SORT_MODE = '{{ sort_mode }}';
+
+function getCsrfToken() {
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+function sortCards() {
+  const grid = document.querySelector('.grid');
+  if (!grid) return;
+  const cards = Array.from(grid.querySelectorAll('.card[data-id]'));
+
+  cards.sort((a, b) => {
+    const aPref = a.dataset.preferito === 'true' ? 0 : 1;
+    const bPref = b.dataset.preferito === 'true' ? 0 : 1;
+    if (aPref !== bPref) return aPref - bPref;
+    if (SORT_MODE === 'name') {
+      return a.dataset.nome.localeCompare(b.dataset.nome);
+    }
+    const lineDiff = parseInt(b.dataset.numLinee) - parseInt(a.dataset.numLinee);
+    if (lineDiff !== 0) return lineDiff;
+    const dueDiff = parseInt(b.dataset.dueLinee) - parseInt(a.dataset.dueLinee);
+    if (dueDiff !== 0) return dueDiff;
+    return a.dataset.nome.localeCompare(b.dataset.nome);
+  });
+
+  cards.forEach(card => {
+    card.style.transition = 'opacity 0.18s';
+    card.style.opacity = '0.4';
+  });
+
+  setTimeout(() => {
+    cards.forEach(card => grid.appendChild(card));
+    cards.forEach(card => {
+      card.style.opacity = '1';
+    });
+  }, 180);
+}
+
+document.querySelectorAll('.card[data-href]').forEach(card => {
+  card.addEventListener('click', event => {
+    if (event.target.closest('.card-dl-btn') || event.target.closest('.row-dl-btn')) return;
+    if (event.target.closest('.card-star-btn') || event.target.closest('.row-star-btn')) return;
+    window.location.href = card.dataset.href;
+  });
+  card.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      window.location.href = card.dataset.href;
+    }
+  });
+  card.setAttribute('role', 'link');
+  card.setAttribute('tabindex', '0');
+});
+
+document.querySelectorAll('.card-star-btn, .row-star-btn').forEach(btn => {
+  btn.addEventListener('click', function(event) {
+    event.stopPropagation();
+    const card = this.closest('.card[data-id]');
+    if (!card) return;
+    const id = card.dataset.id;
+    fetch(`/opening/${id}/favorite/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() },
+    })
+    .then(r => r.json())
+    .then(data => {
+      card.dataset.preferito = data.preferito ? 'true' : 'false';
+      if (data.preferito) {
+        this.classList.add('active');
+      } else {
+        this.classList.remove('active');
+      }
+      sortCards();
+    });
+  });
 });
 </script>
 

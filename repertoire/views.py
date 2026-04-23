@@ -129,13 +129,19 @@ def opening_list(request):
     view_mode = request.GET.get("view", "card")
     sort_mode = request.GET.get("sort", "lines")
     now = timezone.now()
+    numbered_opening_lines = OpeningLine.objects.filter(_numbered_line_filter())
+    numbered_related_lines = _numbered_related_line_filter("linee__")
 
     openings = OpeningRoot.objects.annotate(
-        num_linee=Count("linee", distinct=True),
-        studied_linee=Count("linee", filter=Q(linee__completamenti__gt=0), distinct=True),
+        num_linee=Count("linee", filter=numbered_related_lines, distinct=True),
+        studied_linee=Count(
+            "linee",
+            filter=numbered_related_lines & Q(linee__completamenti__gt=0),
+            distinct=True,
+        ),
         due_linee=Count(
             "linee",
-            filter=_numbered_related_line_filter("linee__") & _opening_due_filter(now),
+            filter=numbered_related_lines & _opening_due_filter(now),
             distinct=True,
         ),
     )
@@ -149,10 +155,10 @@ def opening_list(request):
 
     openings = list(openings)
     if sort_mode == "name":
-        openings.sort(key=lambda opening: opening.nome.lower())
+        openings.sort(key=lambda opening: (not opening.preferito, opening.nome.lower()))
     else:
         sort_mode = "lines"
-        openings.sort(key=lambda opening: (-opening.num_linee, -opening.due_linee, opening.nome.lower()))
+        openings.sort(key=lambda opening: (not opening.preferito, -opening.num_linee, -opening.due_linee, opening.nome.lower()))
 
     openings_data = []
     for opening in openings:
@@ -191,6 +197,8 @@ def opening_list(request):
             "filtro": filtro,
             "view_mode": view_mode if view_mode in {"card", "row"} else "card",
             "sort_mode": sort_mode,
+            "total_opening_lines": numbered_opening_lines.count(),
+            "trained_opening_lines": numbered_opening_lines.filter(completamenti__gt=0).count(),
         },
     )
 
@@ -250,6 +258,14 @@ def analisi_domande(request):
 
 def minigiochi(request):
     return render(request, "repertoire/minigiochi.html")
+
+
+@require_POST
+def toggle_opening_favorite(request, pk):
+    opening = get_object_or_404(OpeningRoot, pk=pk)
+    opening.preferito = not opening.preferito
+    opening.save(update_fields=["preferito"])
+    return JsonResponse({"preferito": opening.preferito})
 
 
 def download_opening_lines(request, pk):
@@ -396,19 +412,25 @@ def home(request):
         difficolta = "tutte"
 
     now = timezone.now()
+    opening_lines = OpeningLine.objects.filter(_numbered_line_filter())
+    numbered_related_lines = _numbered_related_line_filter("linee__")
 
-    total_lines = OpeningLine.objects.count()
-    lines_studied = OpeningLine.objects.filter(completamenti__gt=0).count()
-    total_completions = OpeningLine.objects.aggregate(total=Sum("completamenti"))["total"] or 0
+    total_lines = opening_lines.count()
+    lines_studied = opening_lines.filter(completamenti__gt=0).count()
+    total_completions = opening_lines.aggregate(total=Sum("completamenti"))["total"] or 0
     due_opening_count = OpeningLine.objects.filter(_numbered_line_filter()).filter(_line_due_filter(now)).count()
     due_final_count = FinaleLine.objects.filter(_numbered_line_filter()).filter(_line_due_filter(now)).count()
 
     openings = OpeningRoot.objects.annotate(
-        total=Count("linee", distinct=True),
-        studied=Count("linee", filter=Q(linee__completamenti__gt=0), distinct=True),
+        total=Count("linee", filter=numbered_related_lines, distinct=True),
+        studied=Count(
+            "linee",
+            filter=numbered_related_lines & Q(linee__completamenti__gt=0),
+            distinct=True,
+        ),
         due=Count(
             "linee",
-            filter=_numbered_related_line_filter("linee__") & _opening_due_filter(now),
+            filter=numbered_related_lines & _opening_due_filter(now),
             distinct=True,
         ),
     )

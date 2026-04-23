@@ -162,6 +162,23 @@ class DashboardAndErrorPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Linea None")
 
+    def test_ripasso_stats_ignore_lines_without_number(self):
+        self.line.completamenti = 1
+        self.line.save(update_fields=["completamenti"])
+        OpeningLine.objects.create(
+            root=self.root,
+            numero=None,
+            titolo="Legacy",
+            pgn="1. e4 c6 2. d4 d5",
+            completamenti=5,
+        )
+
+        response = self.client.get(reverse("ripasso"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_lines"], 1)
+        self.assertEqual(response.context["lines_studied"], 1)
+        self.assertEqual(response.context["total_completions"], 1)
+
     def test_error_page_ignores_errors_for_lines_without_number(self):
         broken_line = OpeningLine.objects.create(
             root=self.root,
@@ -205,3 +222,37 @@ class TrainingAndGamesPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Minigiochi")
         self.assertContains(response, "Coordinate Rush")
+
+
+class OpeningListSummaryTests(TestCase):
+    def test_home_page_shows_global_numbered_line_totals(self):
+        root = OpeningRoot.objects.create(nome="Pirc", difesa=True)
+        OpeningLine.objects.create(
+            root=root,
+            numero=1,
+            titolo="Classica",
+            pgn="1. e4 d6 2. d4 Nf6",
+            completamenti=2,
+        )
+        OpeningLine.objects.create(
+            root=root,
+            numero=2,
+            titolo="Austriaca",
+            pgn="1. e4 d6 2. d4 Nf6 3. Nc3 g6 4. f4",
+        )
+        OpeningLine.objects.create(
+            root=root,
+            numero=None,
+            titolo="Legacy",
+            pgn="1. e4 d6 2. Nc3",
+            completamenti=4,
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "linee allenate")
+        self.assertEqual(response.context["total_opening_lines"], 2)
+        self.assertEqual(response.context["trained_opening_lines"], 1)
+        self.assertEqual(response.context["openings"][0]["num_linee"], 2)
+        self.assertEqual(response.context["openings"][0]["studied_linee"], 1)

@@ -80,9 +80,10 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       min-height: 90px;
+      position: relative;
     }
 
     .nav-logo {
@@ -102,6 +103,8 @@
       align-items: center;
       gap: 10px;
       margin-right: 8px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     nav .brand:hover { color: #d8e7e1; }
@@ -109,6 +112,14 @@
     nav .brand .ui-icon {
       width: 24px;
       height: 24px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      flex: 1;
     }
 
     nav a.nav-link {
@@ -121,6 +132,7 @@
       align-items: center;
       gap: 8px;
       transition: background .2s, color .2s;
+      white-space: nowrap;
     }
 
     nav a.nav-link:hover {
@@ -128,8 +140,15 @@
       color: white;
     }
 
-    #darkToggle {
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
       margin-left: auto;
+    }
+
+    #darkToggle {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.12);
       color: #dbe5e1;
@@ -147,6 +166,27 @@
       background: rgba(255,255,255,.09);
       border-color: rgba(255,255,255,0.2);
       color: white;
+    }
+
+    .nav-toggle {
+      display: none;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #dbe5e1;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, border-color .2s;
+      flex-shrink: 0;
+      padding: 0;
+    }
+
+    .nav-toggle:hover {
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,0.3);
     }
 
     html.dark h1,
@@ -264,50 +304,60 @@ html.dark .mosse { color: #81c7b2 !important; }
       font-weight: 700;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        background: var(--bg-header);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 3px;
+        padding: 10px 14px 14px;
+      }
+
+      nav.nav-open .nav-links {
+        display: flex;
+      }
+
+      nav a.nav-link {
+        justify-content: flex-start;
+        padding: 11px 14px;
+        font-size: 15px;
+        border-radius: 10px;
+      }
+
+      nav a.nav-link:hover {
+        background: rgba(255,255,255,.08);
+      }
+
+      .nav-toggle {
+        display: inline-flex;
+      }
+
       nav {
-        padding: 10px 12px;
-        gap: 8px;
+        padding: 10px 14px;
         min-height: auto;
-        align-items: center;
       }
 
       .nav-logo {
-        height: 46px;
+        height: 48px;
         border-radius: 6px;
         margin-right: 0;
       }
 
       nav .brand {
         font-size: 16px;
-        margin-right: auto;
-        min-width: 0;
-      }
-
-      nav .brand span {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       #darkToggle {
-        margin-left: 0;
         width: 40px;
         height: 40px;
-      }
-
-      nav a.nav-link {
-        flex: 1 1 calc(33.333% - 6px);
-        justify-content: center;
-        min-width: 0;
-        padding: 9px 10px;
-        font-size: 13px;
-      }
-
-      nav a.nav-link span {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       .site-footer-inner {
@@ -325,18 +375,16 @@ html.dark .mosse { color: #81c7b2 !important; }
     }
 
     @media (max-width: 480px) {
+      nav {
+        padding: 8px 12px;
+      }
+
+      .nav-logo {
+        height: 40px;
+      }
+
       nav .brand {
         font-size: 15px;
-      }
-
-      nav a.nav-link {
-        gap: 6px;
-        padding: 8px 8px;
-      }
-
-      nav a.nav-link .ui-icon {
-        width: 20px;
-        height: 20px;
       }
 
       .site-main {
@@ -360,36 +408,43 @@ html.dark .mosse { color: #81c7b2 !important; }
 <body>
   {% include "repertoire/includes/icon_sprite.html" %}
 
-  <nav>
+  <nav id="mainNav">
     <img src="{% static 'repertoire/img/header_logo.png' %}" class="nav-logo" alt="Chess Repertoire Logo">
     <a class="brand" href="{% url 'home' %}">
       <span>Chess Repertoire</span>
     </a>
-    <a class="nav-link" href="{% url 'ripasso' %}">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-home"></use></svg>
-      <span>Ripasso</span>
-    </a>
-    <a class="nav-link" href="{% url 'home' %}">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
-      <span>Aperture</span>
-    </a>
-    <a class="nav-link" href="{% url 'finali_list' %}">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
-      <span>Finali</span>
-    </a>
-    <a class="nav-link" href="{% url 'errori' %}">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-alert"></use></svg>
-      <span>Errori</span>
-    </a>
-    <a class="nav-link" href="{% url 'minigiochi' %}">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg>
-      <span>Minigiochi</span>
-    </a>
-    <a class="nav-link" href="{% url 'import_pgn' %}">
-      <svg class="ui-icon" aria-hidden="true"><use href="#icon-upload"></use></svg>
-      <span>Importa PGN</span>
-    </a>
-    <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
+    <div class="nav-links" id="navLinks">
+      <a class="nav-link" href="{% url 'ripasso' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-home"></use></svg>
+        <span>Ripasso</span>
+      </a>
+      <a class="nav-link" href="{% url 'home' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-book"></use></svg>
+        <span>Aperture</span>
+      </a>
+      <a class="nav-link" href="{% url 'finali_list' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+        <span>Finali</span>
+      </a>
+      <a class="nav-link" href="{% url 'errori' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-alert"></use></svg>
+        <span>Errori</span>
+      </a>
+      <a class="nav-link" href="{% url 'minigiochi' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg>
+        <span>Minigiochi</span>
+      </a>
+      <a class="nav-link" href="{% url 'import_pgn' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-upload"></use></svg>
+        <span>Importa PGN</span>
+      </a>
+    </div>
+    <div class="nav-right">
+      <button id="darkToggle" title="Cambia tema" aria-label="Cambia tema"></button>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg>
+      </button>
+    </div>
   </nav>
 
   <main class="site-main">
@@ -413,15 +468,33 @@ html.dark .mosse { color: #81c7b2 !important; }
     (function() {
       const btn = document.getElementById('darkToggle');
       if (!btn) return;
-
       const icon = dark =>
         `<svg class="ui-icon" aria-hidden="true"><use href="${dark ? '#icon-sun' : '#icon-moon'}"></use></svg>`;
-
       btn.innerHTML = icon(document.documentElement.classList.contains('dark'));
       btn.addEventListener('click', function() {
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('darkMode', isDark ? '1' : '0');
         btn.innerHTML = icon(isDark);
+      });
+    })();
+
+    (function() {
+      const toggle = document.getElementById('navToggle');
+      const nav = document.getElementById('mainNav');
+      if (!toggle || !nav) return;
+      toggle.addEventListener('click', function() {
+        const open = nav.classList.toggle('nav-open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.innerHTML = open
+          ? '<svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg>'
+          : '<svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg>';
+      });
+      document.addEventListener('click', function(e) {
+        if (!nav.contains(e.target) && nav.classList.contains('nav-open')) {
+          nav.classList.remove('nav-open');
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.innerHTML = '<svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg>';
+        }
       });
     })();
   </script>

@@ -171,7 +171,7 @@
   .stage {
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(270px, 340px) minmax(0, 1fr) minmax(200px, 260px);
     gap: 14px;
   }
 
@@ -474,6 +474,12 @@
     font-size: 13px;
   }
 
+  @media (max-width: 1200px) {
+    .stage {
+      grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(180px, 220px);
+    }
+  }
+
   @media (max-width: 980px) {
     .app-shell {
       padding: 10px;
@@ -490,11 +496,12 @@
     }
 
     .stage {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr minmax(160px, 200px);
       grid-template-rows: auto minmax(0, 1fr);
     }
 
     .side-panel {
+      grid-column: 1 / -1;
       padding: 14px;
       gap: 10px;
     }
@@ -526,48 +533,183 @@
     .mini-help {
       display: none;
     }
+
+    .times-panel {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .board-panel {
+      grid-column: 1;
+      grid-row: 2;
+    }
   }
 
   @media (max-width: 640px) {
+    html, body {
+      height: auto;
+      overflow: auto;
+    }
+
+    .app-shell {
+      height: auto;
+      min-height: 100dvh;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .topbar {
+      padding: 8px 12px;
+      min-height: 0;
+      border-radius: 14px;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+    }
+
+    .brand-copy strong {
+      font-size: 15px;
+    }
+
     .brand-copy span {
       display: none;
     }
 
-    .top-actions {
-      gap: 6px;
+    #fullscreenBtn {
+      display: none;
+    }
+
+    .top-note {
+      display: none;
     }
 
     .top-btn {
-      min-height: 38px;
+      min-height: 36px;
       padding: 0 10px;
       font-size: 13px;
     }
 
+    #darkToggle {
+      width: 36px;
+    }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
     .side-panel {
       padding: 12px;
+      gap: 10px;
     }
 
-    .stats-grid,
-    .controls-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .side-panel h1,
+    .side-panel > p {
+      display: none;
     }
 
-    .stat-card,
+    .eyebrow {
+      display: none;
+    }
+
     .target-card {
-      padding: 12px;
+      padding: 12px 14px;
+    }
+
+    .target-square {
+      font-size: clamp(28px, 8vw, 42px);
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat-card {
+      padding: 10px 8px;
+    }
+
+    .stat-card strong {
+      font-size: 20px;
+    }
+
+    .controls-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .action-btn,
+    .mini-select {
+      min-height: 38px;
+      font-size: 13px;
+    }
+
+    .mini-help {
+      display: none;
     }
 
     .board-panel {
       padding: 10px;
+      border-radius: 18px;
+    }
+
+    .feedback-banner {
+      grid-template-columns: 1fr;
+      padding: 10px 12px;
+      border-radius: 14px;
+      gap: 8px;
+    }
+
+    .feedback-main {
+      font-size: 16px;
+    }
+
+    .feedback-sub {
+      display: none;
+    }
+
+    .feedback-meta {
+      justify-content: flex-start;
+      gap: 6px;
+    }
+
+    .meta-pill {
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+
+    .board-wrap {
+      padding: 2px;
     }
 
     .coord-board {
-      border-width: 4px;
-      border-radius: 16px;
+      border-width: 3px;
+      border-radius: 14px;
     }
 
     .footer-note {
-      font-size: 12px;
+      display: none;
+    }
+
+    .times-panel {
+      border-radius: 18px;
+      min-height: 160px;
+      max-height: 220px;
+    }
+
+    .times-panel-header {
+      padding: 10px 14px 8px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .stats-grid,
+    .controls-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
@@ -584,6 +726,129 @@
       display: none;
     }
   }
+
+  .times-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .times-panel-header {
+    flex-shrink: 0;
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .times-panel-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+  }
+
+  .times-panel-avg {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .times-avg-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .times-panel-avg strong {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .times-panel-body {
+    flex: 1 1 0;
+    overflow-y: auto;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .times-panel-body::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .times-panel-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .times-panel-body::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background: rgba(148,163,184,0.28);
+  }
+
+  .times-log-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 24px 8px;
+    line-height: 1.5;
+  }
+
+  .time-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .time-entry.correct {
+    background: rgba(34,197,94,0.09);
+  }
+
+  .time-entry.wrong {
+    background: rgba(239,68,68,0.09);
+  }
+
+  .time-entry-icon {
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .time-entry.correct .time-entry-icon { color: #22c55e; }
+  .time-entry.wrong .time-entry-icon { color: #ef4444; }
+
+  .time-entry-square {
+    flex: 1;
+    color: var(--text);
+  }
+
+  .time-entry-wrong-sq {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .time-entry-ms {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+
+  .time-entry-ms.fast { color: #22c55e; }
+  .time-entry-ms.slow { color: #f59e0b; }
 </style>
 </head>
 <body>
@@ -689,6 +954,19 @@
         <span>Esc esce, oppure usa il bottone in alto.</span>
       </div>
     </section>
+
+    <aside class="panel times-panel" id="timesPanel">
+      <div class="times-panel-header">
+        <span class="times-panel-title">Storico risposte</span>
+        <span class="times-panel-avg" id="timesLogAvg" style="display:none;">
+          <span class="times-avg-label">Media</span>
+          <strong id="timesLogAvgVal">—</strong>
+        </span>
+      </div>
+      <div class="times-panel-body" id="timesLogBody">
+        <span class="times-log-empty" id="timesLogEmpty">Inizia per vedere i tempi</span>
+      </div>
+    </aside>
   </div>
 </div>
 
@@ -734,6 +1012,10 @@
     const orientationLabel = document.getElementById("orientationLabel");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const exitBtn = document.getElementById("exitBtn");
+    const timesLogBody = document.getElementById("timesLogBody");
+    const timesLogEmpty = document.getElementById("timesLogEmpty");
+    const timesLogAvg = document.getElementById("timesLogAvg");
+    const timesLogAvgVal = document.getElementById("timesLogAvgVal");
 
     const bestStreakKey = "minigame_square_rush_best_streak";
     let orientation = orientationSelect.value;
@@ -744,6 +1026,8 @@
     let attempts = 0;
     let streak = 0;
     let bestStreak = parseInt(localStorage.getItem(bestStreakKey) || "0", 10) || 0;
+    let questionStartTime = null;
+    let responseTimes = [];
 
     function isLightSquare(square) {
       const fileIndex = files.indexOf(square[0]);
@@ -839,6 +1123,52 @@
       boardShell.style.height = `${size}px`;
     }
 
+    function addTimeEntry(target, clicked, elapsedMs) {
+      timesLogEmpty.style.display = "none";
+      const correct = target === clicked;
+
+      const entry = document.createElement("div");
+      entry.className = `time-entry ${correct ? "correct" : "wrong"}`;
+
+      const icon = document.createElement("span");
+      icon.className = "time-entry-icon";
+      icon.textContent = correct ? "✓" : "✗";
+
+      const sq = document.createElement("span");
+      sq.className = "time-entry-square";
+      if (correct) {
+        sq.textContent = target;
+      } else {
+        sq.innerHTML = `${target} <span class="time-entry-wrong-sq">(→ ${clicked})</span>`;
+      }
+
+      const ms = document.createElement("span");
+      ms.className = "time-entry-ms" + (elapsedMs < 800 ? " fast" : elapsedMs > 2000 ? " slow" : "");
+      ms.textContent = elapsedMs < 1000
+        ? `${elapsedMs}ms`
+        : `${(elapsedMs / 1000).toFixed(1)}s`;
+
+      entry.appendChild(icon);
+      entry.appendChild(sq);
+      entry.appendChild(ms);
+      timesLogBody.insertBefore(entry, timesLogBody.firstChild);
+
+      if (correct) {
+        responseTimes.push(elapsedMs);
+        const avg = Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length);
+        timesLogAvgVal.textContent = avg < 1000 ? `${avg}ms` : `${(avg / 1000).toFixed(1)}s`;
+        timesLogAvg.style.display = "";
+      }
+    }
+
+    function clearTimesLog() {
+      timesLogBody.innerHTML = "";
+      timesLogBody.appendChild(timesLogEmpty);
+      timesLogEmpty.style.display = "";
+      timesLogAvg.style.display = "none";
+      responseTimes = [];
+    }
+
     function pickNextSquare() {
       const options = allowedSquares();
       if (!options.length) {
@@ -853,11 +1183,17 @@
       targetSquare = options[Math.floor(Math.random() * options.length)];
       targetSquareEl.textContent = targetSquare;
       targetSquareEl.classList.remove("idle");
+      questionStartTime = performance.now();
       setFeedback("Clicca la casa richiesta", "Mantieni il ritmo: una risposta pulita e immediata vale piu' di una risposta lenta.", "");
     }
 
     function handleGuess(square) {
       if (!running || !targetSquare) return;
+
+      const elapsedMs = questionStartTime !== null
+        ? Math.round(performance.now() - questionStartTime)
+        : null;
+      questionStartTime = null;
 
       attempts += 1;
       const clickedButton = boardEl.querySelector(`[data-square="${square}"]`);
@@ -869,6 +1205,7 @@
         bestStreak = Math.max(bestStreak, streak);
         localStorage.setItem(bestStreakKey, String(bestStreak));
         if (clickedButton) clickedButton.classList.add("correct");
+        if (elapsedMs !== null) addTimeEntry(square, square, elapsedMs);
         updateStats();
         setFeedback(`Perfetto: ${square}`, "Ottimo. Passiamo subito alla casa successiva.", "good");
         window.setTimeout(pickNextSquare, 280);
@@ -878,6 +1215,7 @@
       streak = 0;
       if (clickedButton) clickedButton.classList.add("wrong");
       if (targetButton) targetButton.classList.add("target");
+      if (elapsedMs !== null) addTimeEntry(targetSquare, square, elapsedMs);
       updateStats();
       setFeedback(`No, era ${targetSquare}`, `Hai cliccato ${square}. Nessun problema: resta aggressivo, ma pulito.`, "bad");
       window.setTimeout(clearBoardStates, 500);
@@ -888,6 +1226,8 @@
       score = 0;
       attempts = 0;
       streak = 0;
+      questionStartTime = null;
+      clearTimesLog();
       updateStats();
       startGameBtn.querySelector("span").textContent = "Ricomincia";
       pickNextSquare();
@@ -900,6 +1240,8 @@
       score = 0;
       attempts = 0;
       streak = 0;
+      questionStartTime = null;
+      clearTimesLog();
       clearBoardStates();
       updateStats();
       targetSquareEl.textContent = "Premi Inizia";

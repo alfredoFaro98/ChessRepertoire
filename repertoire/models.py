@@ -45,6 +45,7 @@ class OpeningRoot(models.Model):
     moves = models.CharField(max_length=50, blank=True, null=True)
     descrizione = models.TextField(blank=True, null=True)
     difesa = models.BooleanField(default=False)
+    preferito = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["nome"]
