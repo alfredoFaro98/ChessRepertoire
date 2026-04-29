@@ -45,6 +45,7 @@ for i, pgn in enumerate(unique_lines, start=start_index):
             numero=i,
             titolo=" ".join(pgn.split()[:6]),
             pgn=pgn,
+            flipped=root.difesa,
         )
         inserted += 1
 
