@@ -723,9 +723,11 @@
   const lineMistakesEl = document.getElementById('lineMistakes');
   const trainingEventUrl = "{{ training_event_url }}";
   const startingTurn = 'w';
+  const isDifesa = "{{ line.root.difesa }}" === "True";
+  const initialSide = isDifesa ? 'b' : 'w';
   const boardStageEl = document.getElementById('boardStage');
   const boardShellEl = document.getElementById('boardShell');
-  let sideToTrain = 'w';
+  let sideToTrain = initialSide;
   let idx = 0;
   let selectedSquare = null;
   let lineaCompletata = false;
@@ -807,7 +809,7 @@
     draggable: true,
     position: 'start',
     orientation: 'white',
-    pieceTheme: piece => PIECE_BASE + piece + '.png',
+    pieceTheme: piece => PIECE_BASE + piece + '.svg',
     onDragStart: onDragStart,
     onDrop: onDrop,
     onMouseoverSquare: onMouseoverSquare,
@@ -825,9 +827,9 @@
 
   window.addEventListener('resize', resizeBoard);
   window.addEventListener('orientationchange', resizeBoard);
-  window.requestAnimationFrame(resizeBoard);
+  resizeBoard();
 
-  setSide('w');
+  setSide(initialSide);
   document.getElementById('asWhite').onclick = () => setSide('w');
   document.getElementById('asBlack').onclick = () => setSide('b');
 

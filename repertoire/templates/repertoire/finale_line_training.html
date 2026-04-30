@@ -808,7 +808,7 @@
     draggable: true,
     position: fen_start,
     orientation: fenTurn === 'w' ? 'white' : 'black',
-    pieceTheme: piece => PIECE_BASE + piece + '.png',
+    pieceTheme: piece => PIECE_BASE + piece + '.svg',
     onDragStart: onDragStart,
     onDrop: onDrop,
     onMouseoverSquare: onMouseoverSquare,
@@ -826,7 +826,7 @@
 
   window.addEventListener('resize', resizeBoard);
   window.addEventListener('orientationchange', resizeBoard);
-  window.requestAnimationFrame(resizeBoard);
+  resizeBoard();
 
   setSide(fenTurn);
   document.getElementById('asWhite').onclick = () => setSide('w');
