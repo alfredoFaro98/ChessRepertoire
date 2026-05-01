@@ -212,6 +212,50 @@
     box-shadow: inset 0 0 0 6px rgba(47,58,36,0.16);
   }
 
+  .eval-bar-wrapper {
+    width: 24px;
+    flex: 0 0 24px;
+    background-color: #333;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  html:not(.dark) .eval-bar-wrapper {
+    background-color: #b0b0b0;
+    border-color: rgba(0,0,0,0.1);
+  }
+
+  .eval-bar-fill {
+    width: 100%;
+    background-color: #fff;
+    height: 50%;
+    transition: height 0.5s ease;
+  }
+
+  html:not(.dark) .eval-bar-fill {
+    background-color: #fff;
+  }
+
+  .eval-score {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: bold;
+    color: #fff;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 4px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
   .sidebar {
     padding: 14px;
     background: rgba(15,20,26,0.84);
@@ -608,7 +652,11 @@
         <h1 class="board-stage-title">{{ line.root.nome }} - Linea {{ line.numero }}</h1>
       </div>
 
-      <div id="boardStage" class="board-stage-body">
+      <div id="boardStage" class="board-stage-body" style="gap: 12px;">
+        <div class="eval-bar-wrapper" id="evalBar">
+          <div class="eval-bar-fill" id="evalFill"></div>
+          <span class="eval-score" id="evalScore">0.0</span>
+        </div>
         <div id="boardShell" class="board-shell">
           <div id="board"></div>
           <svg id="hintArrowSvg" style="position:absolute;top:0;left:0;pointer-events:none;display:none;">
@@ -736,6 +784,60 @@
   let sessionCorrectMoves = 0;
   let completionSent = false;
 
+  const evalFill = document.getElementById('evalFill');
+  const evalScoreText = document.getElementById('evalScore');
+  let sfWorker = null;
+
+  try {
+    sfWorker = new Worker("{% static 'vendor/stockfish/stockfish.js' %}");
+    sfWorker.onmessage = function(e) {
+      const msg = e.data;
+      if (msg.startsWith('info depth') && msg.includes('score cp')) {
+        const match = msg.match(/score cp (-?\d+)/);
+        if (match) {
+          const cp = parseInt(match[1], 10);
+          updateEvalUI(cp / 100);
+        }
+      } else if (msg.startsWith('info depth') && msg.includes('score mate')) {
+        const match = msg.match(/score mate (-?\d+)/);
+        if (match) {
+          const mate = parseInt(match[1], 10);
+          updateEvalUIMate(mate);
+        }
+      }
+    };
+    sfWorker.postMessage('uci');
+  } catch (err) {
+    console.warn('Stockfish non supportato o non trovato.', err);
+  }
+
+  function updateEvalUI(score) {
+    const turn = game.turn();
+    const absoluteScore = turn === 'w' ? score : -score;
+    const pct = 50 + (2 / Math.PI) * Math.atan(absoluteScore / 4) * 50;
+    if (evalFill) evalFill.style.height = pct + '%';
+    if (evalScoreText) evalScoreText.textContent = absoluteScore > 0 ? '+' + absoluteScore.toFixed(1) : absoluteScore.toFixed(1);
+  }
+
+  function updateEvalUIMate(mate) {
+    const turn = game.turn();
+    const absoluteMate = turn === 'w' ? mate : -mate;
+    if (absoluteMate > 0) {
+      if (evalFill) evalFill.style.height = '100%';
+      if (evalScoreText) evalScoreText.textContent = 'M' + absoluteMate;
+    } else {
+      if (evalFill) evalFill.style.height = '0%';
+      if (evalScoreText) evalScoreText.textContent = '-M' + Math.abs(absoluteMate);
+    }
+  }
+
+  function evaluateCurrentPosition() {
+    if (sfWorker) {
+      sfWorker.postMessage('position fen ' + game.fen());
+      sfWorker.postMessage('go depth 12');
+    }
+  }
+
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -821,6 +923,8 @@
     const size = getBoardSize();
     boardShellEl.style.width = size + 'px';
     boardShellEl.style.height = size + 'px';
+    const evalBar = document.getElementById('evalBar');
+    if (evalBar) evalBar.style.height = size + 'px';
     document.getElementById('board').style.width = size + 'px';
     board.resize();
   }
@@ -895,12 +999,14 @@
     setFeedback(`Tocca al ${side === 'w' ? 'Bianco' : 'Nero'} - gioca la mossa corretta`, '');
     updateProgress();
     rememberTrainingSession();
+    evaluateCurrentPosition();
     if (side === 'b' && movesSAN.length) {
       try {
         const autoMv = game.move(movesSAN[idx]);
         if (autoMv) addMoveChip(autoMv.san, false, Math.floor(idx / 2) + 1);
         idx++;
         board.position(game.fen());
+        evaluateCurrentPosition();
       } catch (e) { console.warn(e); }
     }
   }
@@ -1000,6 +1106,7 @@
     setFeedback(`Corretto: ${mv.san}`, 'correct');
     board.position(game.fen());
     updateProgress();
+    evaluateCurrentPosition();
 
     if (idx < movesSAN.length) {
       try {
@@ -1009,6 +1116,7 @@
         idx++;
         board.position(game.fen());
         updateProgress();
+        evaluateCurrentPosition();
       } catch (e) { console.warn('Reply SAN non giocabile:', movesSAN[idx], e); }
     }
 
