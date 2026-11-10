@@ -10,6 +10,8 @@ from .models import (
     OpeningLine,
     OpeningLineMistake,
     OpeningRoot,
+    Puzzle,
+    PuzzleAttempt,
 )
 from .utils import trova_parent
 
@@ -172,3 +174,16 @@ class FinaleLineMistakeAdmin(admin.ModelAdmin):
     list_display = ("line", "wrong_move", "expected_move", "occurrence_count", "last_seen")
     list_filter = ("side_to_train", "line__capitolo")
     search_fields = ("line__capitolo__nome", "wrong_move", "expected_move", "fen")
+
+
+@admin.register(Puzzle)
+class PuzzleAdmin(admin.ModelAdmin):
+    list_display = ("lichess_id", "rating", "themes", "attempt_count", "fail_count", "due_at")
+    search_fields = ("lichess_id", "themes")
+    list_filter = ("source",)
+
+
+@admin.register(PuzzleAttempt)
+class PuzzleAttemptAdmin(admin.ModelAdmin):
+    list_display = ("puzzle", "created_at", "success", "wrong_move", "expected_move", "guess_theme", "guess_correct")
+    list_filter = ("success", "guess_correct")

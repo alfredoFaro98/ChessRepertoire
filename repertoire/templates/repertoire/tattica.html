@@ -1,0 +1,282 @@
+{% extends "repertoire/base.html" %}
+{% block title %}Tattica - Chess Repertoire{% endblock %}
+{% block content %}
+<style>
+  .tt-page { max-width: 1180px; margin: 0 auto; padding: 28px 16px 40px; }
+  .tt-hero {
+    background: linear-gradient(135deg, rgba(47,111,94,0.16), rgba(61,120,180,0.10));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  .tt-hero h1 { margin: 0 0 6px; font-size: 28px; }
+  .tt-page .tt-hero p { margin: 0; color: var(--text-muted); max-width: 760px; line-height: 1.6; }
+  .tt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+  .tt-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+  .tt-stat .num { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tt-stat .lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .tt-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .tt-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+    cursor: pointer; text-decoration: none; font-family: inherit;
+  }
+  .tt-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tt-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  html.dark .tt-btn.primary { color: #0f141a; }
+  .tt-btn.primary:hover { background: var(--accent-strong); color: #fff; }
+  html.dark .tt-btn.primary:hover { color: #0f141a; }
+  .tt-btn.small { padding: 6px 10px; font-size: 12px; }
+  .tt-btn[disabled], .tt-btn.disabled { opacity: .45; pointer-events: none; }
+
+  .tt-section-title { font-size: 18px; margin: 26px 0 12px; }
+  .tt-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; }
+  .tt-panel h3 { margin: 0 0 10px; font-size: 15px; }
+  .tt-panel .muted, .tt-muted { color: var(--text-muted); font-size: 13px; }
+  .tt-insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .tt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .tt-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+  .tt-list a { font-weight: 700; }
+  .tt-tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .tt-tag.bad { color: #f87171; background: rgba(248,113,113,0.12); }
+  .tt-tag.ok { color: #4ade80; background: rgba(74,222,128,0.12); }
+  .tt-tag.neutral { color: var(--text-muted); background: var(--surface-alt); }
+
+  .tt-download { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .tt-download select {
+    padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--input-bg); color: var(--text); font-size: 14px;
+  }
+  #dlStatus { font-size: 13px; color: var(--text-muted); }
+  .tt-progress { height: 6px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; margin-top: 10px; display: none; }
+  .tt-progress > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+
+  .tt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .tt-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .tt-card.weak { border-color: rgba(248,113,113,0.55); }
+  .tt-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .tt-card-head h4 { margin: 0; font-size: 16px; }
+  .tt-meter-row { display: grid; grid-template-columns: 92px 1fr 42px; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .tt-meter { height: 6px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
+  .tt-meter > div { height: 100%; border-radius: 999px; }
+  .tt-meter .solve { background: var(--accent); }
+  .tt-meter .quiz { background: #60a5fa; }
+  .tt-meter-row .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 700; }
+  .tt-card details summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); }
+  .tt-card details p { font-size: 13px; line-height: 1.55; margin: 8px 0 6px; color: var(--text-muted) !important; }
+  .tt-card details ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+  .tt-card-actions { display: flex; gap: 8px; margin-top: auto; align-items: center; }
+  .tt-card-actions .count { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+  .tt-empty { text-align: center; padding: 30px 20px; }
+  .tt-empty h2 { margin: 0 0 8px; }
+</style>
+
+{% csrf_token %}
+<div class="tt-page">
+  <section class="tt-hero">
+    <h1>Tattica</h1>
+    <p>Puzzle veri da partite Lichess, divisi per tema. Risolvi, poi indovina il tema per imparare a <strong>riconoscerlo</strong>. I puzzle sbagliati tornano in ripasso dopo 1, 3, 7 e 21 giorni.</p>
+
+    <div class="tt-stats">
+      <div class="tt-stat"><div class="num">{{ rating }}</div><div class="lbl">Rating tattico stimato</div></div>
+      <div class="tt-stat"><div class="num">{% if success_pct is not None %}{{ success_pct }}%{% else %}-{% endif %}</div><div class="lbl">Successo su {{ total_attempts }} tentativi</div></div>
+      <div class="tt-stat"><div class="num">{{ due_count }}</div><div class="lbl">Errori da ripassare oggi</div></div>
+      <div class="tt-stat"><div class="num">{{ puzzle_nuovi }}</div><div class="lbl">Puzzle nuovi (su {{ puzzle_total }})</div></div>
+    </div>
+
+    <div class="tt-cta">
+      <a class="tt-btn primary {% if not puzzle_total %}disabled{% endif %}" href="{% url 'tattica_allena' %}">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-play"></use></svg><span>Allenamento misto</span>
+      </a>
+      <a class="tt-btn {% if not puzzle_total %}disabled{% endif %}" href="{% url 'tattica_allena' %}?mode=deboli">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-target"></use></svg><span>Punti deboli</span>
+      </a>
+      <a class="tt-btn {% if not due_count %}disabled{% endif %}" href="{% url 'tattica_allena' %}?mode=ripasso">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-repeat"></use></svg><span>Ripasso errori ({{ due_count }})</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="tt-panel">
+    {% if not puzzle_total %}
+      <div class="tt-empty">
+        <h2>Iniziamo: scarica i primi puzzle</h2>
+        <p class="tt-muted">Scarico da Lichess 8 puzzle per ciascuno dei 12 temi più utili a livello club. Ci vuole circa un minuto.</p>
+      </div>
+    {% else %}
+      <h3>Scarica altri puzzle da Lichess</h3>
+    {% endif %}
+    <div class="tt-download">
+      <label class="tt-muted" for="difficulty">Difficoltà</label>
+      <select id="difficulty">
+        {% for d in difficulties %}
+          <option value="{{ d }}" {% if d == suggested_difficulty %}selected{% endif %}>
+            {% if d == "easiest" %}Molto facile{% elif d == "easier" %}Facile{% elif d == "normal" %}Normale{% elif d == "harder" %}Difficile{% else %}Molto difficile{% endif %}{% if d == suggested_difficulty %} (consigliata){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      <button class="tt-btn primary" id="starterBtn" type="button">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-download"></use></svg><span>Pacchetto base (12 temi)</span>
+      </button>
+      <span id="dlStatus"></span>
+    </div>
+    <div class="tt-progress" id="dlProgress"><div></div></div>
+  </section>
+
+  {% if total_attempts %}
+  <h2 class="tt-section-title">I tuoi errori ricorrenti</h2>
+  <div class="tt-insights">
+    <div class="tt-panel">
+      <h3>Temi più deboli</h3>
+      {% if weak %}
+        <ul class="tt-list">
+          {% for s in weak %}
+            <li>
+              <a href="{% url 'tattica_allena' %}?tema={{ s.key }}">{{ s.nome }}</a>
+              <span class="tt-tag bad">{{ s.successo_pct }}% · {{ s.falliti }} errori</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">Servono almeno 3 tentativi per tema per capire dove sbagli. Continua ad allenarti.</p>
+      {% endif %}
+    </div>
+    <div class="tt-panel">
+      <h3>Temi che confondi</h3>
+      {% if confusioni %}
+        <ul class="tt-list">
+          {% for c in confusioni %}
+            <li><span>Era <strong>{{ c.tema }}</strong>, hai detto {{ c.scambiato_con }}</span><span class="tt-tag neutral">{{ c.volte }}×</span></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">Dopo ogni puzzle ti chiedo che tema era: qui compaiono gli scambi più frequenti.</p>
+      {% endif %}
+    </div>
+    <div class="tt-panel">
+      <h3>Ultimi puzzle sbagliati</h3>
+      {% if recent_errors %}
+        <ul class="tt-list">
+          {% for att in recent_errors %}
+            <li>
+              <a href="{% url 'tattica_allena' %}?puzzle={{ att.puzzle_id }}">{{ att.theme_names|join:", "|default:"Puzzle" }}</a>
+              <span class="tt-tag neutral">{% if att.wrong_move %}{{ att.wrong_move }} invece di {{ att.expected_move }}{% else %}soluzione vista{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">Nessun errore finora.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% for group in groups %}
+    <h2 class="tt-section-title">{{ group.nome }}</h2>
+    <div class="tt-grid">
+      {% for s in group.temi %}
+        <article class="tt-card {% if s.successo_pct is not None and s.successo_pct < 60 and s.tentativi >= 3 %}weak{% endif %}">
+          <div class="tt-card-head">
+            <h4>{{ s.nome }}</h4>
+            {% if s.da_ripassare %}<span class="tt-tag bad">{{ s.da_ripassare }} da ripassare</span>{% endif %}
+          </div>
+          <div class="tt-meter-row">
+            <span>Risolti {{ s.risolti }}/{{ s.tentativi }}</span>
+            <div class="tt-meter"><div class="solve" style="width: {{ s.successo_pct|default:0 }}%"></div></div>
+            <span class="val">{% if s.successo_pct is not None %}{{ s.successo_pct }}%{% else %}-{% endif %}</span>
+          </div>
+          <div class="tt-meter-row">
+            <span>Riconosciuto {{ s.quiz_ok }}/{{ s.quiz_tot }}</span>
+            <div class="tt-meter"><div class="quiz" style="width: {{ s.quiz_pct|default:0 }}%"></div></div>
+            <span class="val">{% if s.quiz_pct is not None %}{{ s.quiz_pct }}%{% else %}-{% endif %}</span>
+          </div>
+          <details>
+            <summary>Come riconoscerla</summary>
+            <p>{{ s.descrizione }}</p>
+            <ul>{% for seg in s.segnali %}<li>{{ seg }}</li>{% endfor %}</ul>
+          </details>
+          <div class="tt-card-actions">
+            <a class="tt-btn small {% if not s.totale %}disabled{% endif %}" href="{% url 'tattica_allena' %}?tema={{ s.key }}">Allena</a>
+            <button class="tt-btn small" type="button" data-download="{{ s.key }}">+10</button>
+            <span class="count" data-count="{{ s.key }}">{{ s.nuovi }} nuovi / {{ s.totale }}</span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+
+{{ starter_themes|json_script:"starter-themes" }}
+{{ theme_names|json_script:"theme-names" }}
+<script>
+(function () {
+  const url = "{% url 'tattica_scarica' %}";
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const starter = JSON.parse(document.getElementById('starter-themes').textContent);
+  const names = JSON.parse(document.getElementById('theme-names').textContent);
+  const statusEl = document.getElementById('dlStatus');
+  const progress = document.getElementById('dlProgress');
+  const bar = progress.firstElementChild;
+  let busy = false;
+
+  async function download(theme, count) {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({ tema: theme, count: count, difficulty: document.getElementById('difficulty').value }),
+    });
+    const data = await resp.json().catch(() => ({ ok: false, error: 'Risposta non valida dal server.' }));
+    if (!resp.ok || !data.ok) throw new Error(data.error || 'Download non riuscito.');
+    return data;
+  }
+
+  function setBusy(value) {
+    busy = value;
+    document.querySelectorAll('[data-download], #starterBtn').forEach(b => { b.disabled = value; });
+  }
+
+  document.querySelectorAll('[data-download]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (busy) return;
+      const theme = btn.dataset.download;
+      setBusy(true);
+      statusEl.textContent = `Scarico puzzle: ${names[theme]}...`;
+      try {
+        const data = await download(theme, 10);
+        statusEl.textContent = `${names[theme]}: +${data.added} puzzle (totale ${data.total}).`;
+        const countEl = document.querySelector(`[data-count="${theme}"]`);
+        if (countEl) countEl.textContent = `+${data.added} · totale ${data.total}`;
+      } catch (err) {
+        statusEl.textContent = err.message;
+      } finally {
+        setBusy(false);
+      }
+    });
+  });
+
+  document.getElementById('starterBtn').addEventListener('click', async () => {
+    if (busy) return;
+    setBusy(true);
+    progress.style.display = 'block';
+    let added = 0;
+    for (let i = 0; i < starter.length; i++) {
+      const theme = starter[i];
+      statusEl.textContent = `(${i + 1}/${starter.length}) ${names[theme]}...`;
+      try {
+        const data = await download(theme, 8);
+        added += data.added;
+      } catch (err) {
+        statusEl.textContent = `Interrotto su ${names[theme]}: ${err.message}`;
+        setBusy(false);
+        return;
+      }
+      bar.style.width = `${Math.round(100 * (i + 1) / starter.length)}%`;
+    }
+    statusEl.textContent = `Fatto: ${added} puzzle nuovi. Ricarico...`;
+    setTimeout(() => window.location.reload(), 800);
+  });
+})();
+</script>
+{% endblock %}

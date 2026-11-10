@@ -20,7 +20,10 @@ from .models import (
     OpeningLine,
     OpeningLineMistake,
     OpeningRoot,
+    Puzzle,
+    PuzzleAttempt,
 )
+from . import tactics
 from .utils import (
     due_label,
     extract_pgn_lines,
@@ -552,7 +555,7 @@ def finali_list(request):
 
 def errori(request):
     kind = request.GET.get("kind", "tutti")
-    if kind not in {"tutti", "aperture", "finali"}:
+    if kind not in {"tutti", "aperture", "finali", "tattica"}:
         kind = "tutti"
 
     opening_errors = list(
@@ -602,6 +605,27 @@ def errori(request):
                 }
             )
 
+    if kind in {"tutti", "tattica"}:
+        failed_puzzles = (
+            Puzzle.objects.filter(fail_count__gt=0).order_by("-fail_count", "-last_attempt_at")[:25]
+        )
+        for puzzle in failed_puzzles:
+            last_error = puzzle.attempts.filter(success=False).order_by("-created_at").first()
+            names = [tactics.THEMES[k]["nome"] for k in tactics.known_theme_keys(puzzle)][:2]
+            error_entries.append(
+                {
+                    "kind": "Tattica",
+                    "title": ", ".join(names) or "Puzzle",
+                    "subtitle": f"Puzzle {puzzle.lichess_id} ({puzzle.rating})",
+                    "wrong_move": (last_error.wrong_move if last_error else "") or "-",
+                    "expected_move": (last_error.expected_move if last_error else "") or "-",
+                    "fen": (last_error.error_fen if last_error else "") or puzzle.fen,
+                    "occurrence_count": puzzle.fail_count,
+                    "last_seen": puzzle.last_attempt_at or puzzle.created_at,
+                    "train_url": reverse("tattica_allena") + f"?puzzle={puzzle.id}",
+                }
+            )
+
     error_entries.sort(key=lambda item: (-item["occurrence_count"], -item["last_seen"].timestamp()))
 
     return render(
@@ -612,6 +636,7 @@ def errori(request):
             "error_entries": error_entries[:40],
             "opening_error_count": OpeningLineMistake.objects.filter(line__numero__isnull=False, line__numero__gt=0).count(),
             "final_error_count": FinaleLineMistake.objects.filter(line__numero__isnull=False, line__numero__gt=0).count(),
+            "tactic_error_count": Puzzle.objects.filter(fail_count__gt=0).count(),
         },
     )
 
@@ -752,3 +777,210 @@ def _handle_training_event(request, line, mistake_model):
         )
 
     return JsonResponse({"ok": False, "error": "Evento non supportato."}, status=400)
+
+
+# ---------------------------------------------------------------------------
+# Tattica
+# ---------------------------------------------------------------------------
+
+TATTICA_MODES = {"misto", "deboli", "ripasso"}
+
+
+def _json_body(request):
+    try:
+        return json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
+def tattica(request):
+    stats, confusioni = tactics.theme_stats()
+    rating = tactics.current_rating()
+    total_attempts = PuzzleAttempt.objects.count()
+    solved = PuzzleAttempt.objects.filter(success=True).count()
+    recent_errors = list(
+        PuzzleAttempt.objects.select_related("puzzle").filter(success=False).order_by("-created_at")[:6]
+    )
+    for att in recent_errors:
+        att.theme_names = [tactics.THEMES[k]["nome"] for k in tactics.known_theme_keys(att.puzzle)][:3]
+
+    groups = []
+    for group in (tactics.GROUP_MOTIVI, tactics.GROUP_MATTI, tactics.GROUP_ALTRO):
+        items = [s for s in stats.values() if s["gruppo"] == group]
+        groups.append({"nome": group, "temi": items})
+
+    return render(
+        request,
+        "repertoire/tattica.html",
+        {
+            "rating": rating,
+            "puzzle_total": Puzzle.objects.count(),
+            "puzzle_nuovi": Puzzle.objects.filter(attempt_count=0).count(),
+            "due_count": tactics.due_puzzles().count(),
+            "total_attempts": total_attempts,
+            "success_pct": round(100 * solved / total_attempts) if total_attempts else None,
+            "weak": tactics.weak_themes(stats),
+            "confusioni": confusioni[:5],
+            "recent_errors": recent_errors,
+            "groups": groups,
+            "starter_themes": tactics.STARTER_THEMES,
+            "theme_names": {k: v["nome"] for k, v in tactics.THEMES.items()},
+            "difficulties": tactics.DIFFICULTIES,
+            "suggested_difficulty": tactics.suggested_difficulty(rating),
+        },
+    )
+
+
+def tattica_allena(request):
+    mode = request.GET.get("mode", "misto")
+    if mode not in TATTICA_MODES:
+        mode = "misto"
+    theme = request.GET.get("tema") or ""
+    if theme not in tactics.THEMES:
+        theme = ""
+    puzzle_id = request.GET.get("puzzle") or ""
+    return render(
+        request,
+        "repertoire/tattica_allena.html",
+        {
+            "mode": mode,
+            "theme": theme,
+            "theme_name": tactics.THEMES[theme]["nome"] if theme else "",
+            "puzzle_id": puzzle_id if puzzle_id.isdigit() else "",
+            "rating": tactics.current_rating(),
+            "themes": [(k, v["nome"]) for k, v in tactics.THEMES.items()],
+        },
+    )
+
+
+def tattica_api_next(request):
+    puzzle_id = request.GET.get("puzzle")
+    if puzzle_id and puzzle_id.isdigit():
+        puzzle = Puzzle.objects.filter(pk=int(puzzle_id)).first()
+        if puzzle:
+            return JsonResponse({"ok": True, "puzzle": tactics.serialize_puzzle(puzzle, "singolo")})
+
+    mode = request.GET.get("mode", "misto")
+    if mode not in TATTICA_MODES:
+        mode = "misto"
+    theme = request.GET.get("tema") or None
+    if theme not in tactics.THEMES:
+        theme = None
+    exclude = [int(x) for x in (request.GET.get("exclude") or "").split(",") if x.isdigit()][-200:]
+
+    puzzle, effective_mode = tactics.select_next_puzzle(mode, theme, exclude)
+    if puzzle is None:
+        if mode == "ripasso":
+            msg = "Nessun puzzle da ripassare: ottimo lavoro!"
+        else:
+            msg = "Hai finito i puzzle disponibili per questa selezione: scaricane altri dalla pagina Tattica."
+        return JsonResponse({"ok": True, "puzzle": None, "message": msg})
+    return JsonResponse({"ok": True, "puzzle": tactics.serialize_puzzle(puzzle, effective_mode)})
+
+
+@require_POST
+def tattica_api_result(request):
+    payload = _json_body(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "error": "Payload non valido."}, status=400)
+    puzzle = get_object_or_404(Puzzle, pk=payload.get("puzzle_id"))
+
+    success = bool(payload.get("success"))
+    try:
+        time_ms = max(0, int(payload.get("time_ms") or 0)) or None
+        move_index = max(0, int(payload.get("move_index") or 0))
+    except (TypeError, ValueError):
+        time_ms, move_index = None, 0
+
+    now = timezone.now()
+    with transaction.atomic():
+        first_attempt = puzzle.attempt_count == 0
+        rating_before = tactics.current_rating()
+        rating_after = None
+        if first_attempt:
+            rated_count = PuzzleAttempt.objects.filter(rating_after__isnull=False).count()
+            rating_after = tactics.updated_rating(rating_before, puzzle.rating, success, rated_count)
+
+        attempt = PuzzleAttempt.objects.create(
+            puzzle=puzzle,
+            created_at=now,
+            success=success,
+            first_attempt=first_attempt,
+            is_review=puzzle.due_at is not None,
+            solution_shown=bool(payload.get("solution_shown")),
+            hint_used=bool(payload.get("hint_used")),
+            time_ms=time_ms,
+            wrong_move=(payload.get("wrong_move") or "")[:20],
+            expected_move=(payload.get("expected_move") or "")[:20],
+            error_fen=(payload.get("error_fen") or "")[:120],
+            move_index=move_index,
+            rating_after=rating_after,
+        )
+
+        puzzle.attempt_count += 1
+        if success:
+            puzzle.success_count += 1
+        else:
+            puzzle.fail_count += 1
+        puzzle.last_attempt_at = now
+        tactics.apply_review_schedule(puzzle, success, now)
+        puzzle.save()
+
+    rating = rating_after if rating_after is not None else rating_before
+    return JsonResponse(
+        {
+            "ok": True,
+            "attempt_id": attempt.id,
+            "rating": rating,
+            "rating_delta": rating - rating_before,
+            "puzzle_rating": puzzle.rating,
+            "due_at": puzzle.due_at.isoformat() if puzzle.due_at else None,
+            "themes": [tactics.theme_payload(k) for k in tactics.known_theme_keys(puzzle)],
+        }
+    )
+
+
+@require_POST
+def tattica_api_guess(request):
+    payload = _json_body(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "error": "Payload non valido."}, status=400)
+    attempt = get_object_or_404(PuzzleAttempt.objects.select_related("puzzle"), pk=payload.get("attempt_id"))
+    guess = payload.get("guess") or ""
+    target = payload.get("target") or ""
+    if guess not in tactics.THEMES or target not in tactics.THEMES:
+        return JsonResponse({"ok": False, "error": "Tema sconosciuto."}, status=400)
+
+    correct = guess in tactics.theme_keys(attempt.puzzle)
+    attempt.guess_theme = guess
+    attempt.guess_target = target
+    attempt.guess_correct = correct
+    attempt.save(update_fields=["guess_theme", "guess_target", "guess_correct"])
+    return JsonResponse({"ok": True, "correct": correct})
+
+
+@require_POST
+def tattica_scarica(request):
+    payload = _json_body(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "error": "Payload non valido."}, status=400)
+    theme = payload.get("tema")
+    if theme not in tactics.THEMES:
+        return JsonResponse({"ok": False, "error": "Tema sconosciuto."}, status=400)
+    difficulty = payload.get("difficulty")
+    if difficulty not in tactics.DIFFICULTIES:
+        difficulty = tactics.suggested_difficulty(tactics.current_rating())
+    try:
+        count = min(25, max(1, int(payload.get("count") or 10)))
+    except (TypeError, ValueError):
+        count = 10
+
+    try:
+        added = tactics.download_theme_puzzles(theme, count=count, difficulty=difficulty)
+    except tactics.LichessRateLimited as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=429)
+    except tactics.LichessError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=502)
+
+    total = Puzzle.objects.filter(themes__contains=tactics.theme_filter_value(theme)).count()
+    return JsonResponse({"ok": True, "added": added, "total": total})

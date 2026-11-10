@@ -210,6 +210,7 @@
     <div class="hero-stats">
       <span class="hero-pill">Errori aperture: {{ opening_error_count }}</span>
       <span class="hero-pill">Errori finali: {{ final_error_count }}</span>
+      <span class="hero-pill">Puzzle sbagliati: {{ tactic_error_count }}</span>
     </div>
   </div>
 
@@ -218,6 +219,7 @@
       <a href="{% url 'errori' %}?kind=tutti" class="filter-tab {% if kind == 'tutti' %}active{% endif %}">Tutti</a>
       <a href="{% url 'errori' %}?kind=aperture" class="filter-tab {% if kind == 'aperture' %}active{% endif %}">Aperture</a>
       <a href="{% url 'errori' %}?kind=finali" class="filter-tab {% if kind == 'finali' %}active{% endif %}">Finali</a>
+      <a href="{% url 'errori' %}?kind=tattica" class="filter-tab {% if kind == 'tattica' %}active{% endif %}">Tattica</a>
     </div>
     <div style="font-size:13px;color:var(--text-muted);">Ordinati per frequenza e poi per recenza.</div>
   </div>

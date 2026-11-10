@@ -28,4 +28,10 @@ urlpatterns = [
         name="finale_line_training_event",
     ),
     path("errori/", views.errori, name="errori"),
+    path("tattica/", views.tattica, name="tattica"),
+    path("tattica/allena/", views.tattica_allena, name="tattica_allena"),
+    path("tattica/api/next/", views.tattica_api_next, name="tattica_api_next"),
+    path("tattica/api/risultato/", views.tattica_api_result, name="tattica_api_result"),
+    path("tattica/api/tema/", views.tattica_api_guess, name="tattica_api_guess"),
+    path("tattica/api/scarica/", views.tattica_scarica, name="tattica_scarica"),
 ]

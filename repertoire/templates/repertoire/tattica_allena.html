@@ -1,0 +1,576 @@
+{% extends "repertoire/base.html" %}
+{% load static %}
+{% block title %}Allenamento tattico - Chess Repertoire{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.css' %}">
+<style>
+  .ta-page { max-width: 1180px; margin: 0 auto; padding: 20px 12px 32px; }
+  .ta-layout { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 18px; align-items: start; }
+  .ta-board-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #boardWrap { width: 100%; max-width: 640px; }
+  #board { border-radius: 10px; overflow: hidden; box-shadow: 0 14px 32px rgba(0,0,0,0.22); }
+  .white-1e1d7 { background-color: #eeeed2; }
+  .black-3c85d { background-color: #769656; }
+  #board .square-55d63 { position: relative; }
+  #board .square-55d63.last-move { box-shadow: inset 0 0 0 999px rgba(255, 214, 10, 0.38); }
+  #board .square-55d63.selected { box-shadow: inset 0 0 0 999px rgba(20, 120, 220, 0.38); }
+  #board .square-55d63.hint-from { box-shadow: inset 0 0 0 999px rgba(96, 165, 250, 0.55); }
+  #board .square-55d63.wrong { box-shadow: inset 0 0 0 999px rgba(239, 68, 68, 0.55); }
+  #board .square-55d63.target::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 30%; height: 30%;
+    transform: translate(-50%, -50%); border-radius: 50%; background: rgba(20, 30, 20, 0.25); pointer-events: none;
+  }
+  .ta-board-meta { width: 100%; max-width: 640px; display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+
+  .ta-side { display: flex; flex-direction: column; gap: 12px; }
+  .ta-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; }
+  .ta-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ta-chip {
+    font-size: 13px; font-weight: 700; padding: 6px 11px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text); text-decoration: none;
+  }
+  .ta-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  html.dark .ta-chip.active { color: #0f141a; }
+  .ta-filters select {
+    margin-top: 8px; width: 100%; padding: 8px 10px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 14px;
+  }
+
+  .ta-prompt { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; }
+  .ta-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #64748b; flex: 0 0 auto; }
+  .ta-dot.w { background: #f8fafc; }
+  .ta-dot.b { background: #111827; }
+  #feedback { margin-top: 8px; min-height: 22px; font-size: 14px; line-height: 1.45; }
+  #feedback.ok { color: #22c55e; }
+  #feedback.bad { color: #ef4444; }
+  .ta-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .ta-pill { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--surface-alt); }
+  .ta-pill .delta.up { color: #22c55e; }
+  .ta-pill .delta.down { color: #ef4444; }
+
+  .ta-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ta-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .ta-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ta-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  html.dark .ta-btn.primary { color: #0f141a; }
+  .ta-btn[hidden] { display: none; }
+  .ta-btn:disabled { opacity: .45; cursor: default; }
+
+  .ta-quiz h3, .ta-themes h3 { margin: 0 0 10px; font-size: 15px; }
+  .ta-quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ta-quiz-grid button {
+    padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-alt);
+    color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; min-height: 44px;
+  }
+  .ta-quiz-grid button:hover:not(:disabled) { border-color: var(--accent); }
+  .ta-quiz-grid button.correct { background: rgba(34,197,94,0.18); border-color: #22c55e; }
+  .ta-quiz-grid button.wrong { background: rgba(239,68,68,0.18); border-color: #ef4444; }
+  .ta-quiz-grid button:disabled { cursor: default; }
+  .ta-skip { margin-top: 8px; background: none; border: 0; color: var(--text-muted); cursor: pointer; font-size: 13px; padding: 0; }
+  #quizResult { margin-top: 8px; font-size: 14px; font-weight: 700; }
+
+  .ta-theme { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+  .ta-theme:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .ta-theme strong { font-size: 15px; }
+  .ta-theme p { margin: 4px 0 6px; font-size: 13px; line-height: 1.5; color: var(--text-muted) !important; }
+  .ta-theme ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+  .ta-link { font-size: 13px; color: var(--accent); }
+
+  .ta-empty { text-align: center; padding: 24px 12px; }
+
+  @media (max-width: 900px) {
+    .ta-layout { grid-template-columns: 1fr; }
+    .ta-page { padding: 12px 4px 24px; }
+  }
+</style>
+
+{% csrf_token %}
+<div class="ta-page">
+  <div class="ta-layout">
+    <div class="ta-board-col">
+      <div id="boardWrap"><div id="board"></div></div>
+      <div class="ta-board-meta">
+        <span id="puzzleMeta">Caricamento...</span>
+        <span id="sessionMeta">Sessione: 0/0</span>
+      </div>
+    </div>
+
+    <aside class="ta-side">
+      <div class="ta-card ta-filters">
+        <a class="ta-chip {% if mode == 'misto' and not puzzle_id %}active{% endif %}" href="?mode=misto{% if theme %}&tema={{ theme }}{% endif %}">Misto</a>
+        <a class="ta-chip {% if mode == 'deboli' %}active{% endif %}" href="?mode=deboli">Punti deboli</a>
+        <a class="ta-chip {% if mode == 'ripasso' %}active{% endif %}" href="?mode=ripasso{% if theme %}&tema={{ theme }}{% endif %}">Ripasso errori</a>
+        <select id="themeSelect" aria-label="Tema">
+          <option value="">Tutti i temi</option>
+          {% for key, nome in themes %}
+            <option value="{{ key }}" {% if key == theme %}selected{% endif %}>{{ nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="ta-card">
+        <div class="ta-prompt"><span class="ta-dot" id="turnDot"></span><span id="prompt">Caricamento puzzle...</span></div>
+        <div id="feedback"></div>
+        <div class="ta-pills">
+          <span class="ta-pill">Il tuo rating: <span id="userRating">{{ rating }}</span> <span class="delta" id="ratingDelta"></span></span>
+          <span class="ta-pill">Puzzle: <span id="puzzleRating">?</span></span>
+          <span class="ta-pill">Serie: <span id="streak">0</span></span>
+        </div>
+      </div>
+
+      <div class="ta-card ta-actions">
+        <button class="ta-btn" id="hintBtn" type="button" title="Evidenzia il pezzo da muovere (conta come errore)">Suggerimento</button>
+        <button class="ta-btn" id="solutionBtn" type="button">Mostra soluzione</button>
+        <button class="ta-btn primary" id="nextBtn" type="button" hidden>
+          <span>Prossimo</span><svg class="ui-icon" aria-hidden="true"><use href="#icon-arrow-right"></use></svg>
+        </button>
+      </div>
+
+      <div class="ta-card ta-quiz" id="quizCard" hidden>
+        <h3>Che tema era?</h3>
+        <div class="ta-quiz-grid" id="quizOptions"></div>
+        <div id="quizResult"></div>
+        <button class="ta-skip" id="quizSkip" type="button">Salta</button>
+      </div>
+
+      <div class="ta-card ta-themes" id="themesCard" hidden>
+        <h3>Temi del puzzle</h3>
+        <div id="themesList"></div>
+        <a class="ta-link" id="lichessLink" href="#" target="_blank" rel="noopener">Analizza su Lichess</a>
+      </div>
+
+      <div class="ta-card ta-empty" id="emptyCard" hidden>
+        <p id="emptyMsg"></p>
+        <a class="ta-btn primary" href="{% url 'tattica' %}">Vai alla pagina Tattica</a>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="{% static 'vendor/jquery/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'vendor/chessjs/chess.min.js' %}"></script>
+<script src="{% static 'vendor/chessboardjs/chessboard-1.0.0.min.js' %}"></script>
+<script>
+(function () {
+  const PIECE_BASE = "{% static 'vendor/chessboardjs/img/' %}";
+  const URL_NEXT = "{% url 'tattica_api_next' %}";
+  const URL_RESULT = "{% url 'tattica_api_result' %}";
+  const URL_GUESS = "{% url 'tattica_api_guess' %}";
+  const MODE = "{{ mode }}";
+  const THEME = "{{ theme }}";
+  let initialPuzzleId = "{{ puzzle_id }}";
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const COLOR_NAME = { w: 'Bianco', b: 'Nero' };
+
+  const $ = id => document.getElementById(id);
+  const promptEl = $('prompt'), feedbackEl = $('feedback'), turnDot = $('turnDot');
+  const hintBtn = $('hintBtn'), solutionBtn = $('solutionBtn'), nextBtn = $('nextBtn');
+  const quizCard = $('quizCard'), themesCard = $('themesCard'), emptyCard = $('emptyCard');
+
+  let game = new Chess();
+  let puzzle = null;
+  let idx = 0;
+  let failed = false, finished = false, hintUsed = false, busy = false;
+  let startTime = 0;
+  let resultPromise = null, resultData = null;
+  let selected = null;
+  const seen = [];
+  const session = { done: 0, solved: 0, streak: 0 };
+
+  // ---------- Scacchiera ----------
+  const board = Chessboard('board', {
+    draggable: true,
+    position: 'start',
+    pieceTheme: p => PIECE_BASE + p + '.svg',
+    onDragStart: (source, piece) => canMove() && piece[0] === puzzle.player_color,
+    onDrop: (source, target) => {
+      if (source === target) return 'snapback';
+      clearSelection();
+      if (!tryUserMove(source, target)) return 'snapback';
+    },
+    onSnapEnd: () => board.position(game.fen(), false),
+  });
+
+  function sizeBoard() {
+    const wrap = $('boardWrap');
+    const maxByHeight = window.innerWidth > 900 ? window.innerHeight - 150 : 9999;
+    const size = Math.max(260, Math.min(640, wrap.parentElement.clientWidth, maxByHeight));
+    wrap.style.width = size + 'px';
+    board.resize();
+    markLastMove(lastMoveSquares);
+  }
+  window.addEventListener('resize', sizeBoard);
+
+  function sq(square) { return document.querySelector('#board .square-' + square); }
+  function clearClass(cls) { document.querySelectorAll('#board .' + cls).forEach(el => el.classList.remove(cls)); }
+  let lastMoveSquares = [];
+  function markLastMove(squares) {
+    lastMoveSquares = squares || [];
+    clearClass('last-move');
+    lastMoveSquares.forEach(s => { const el = sq(s); if (el) el.classList.add('last-move'); });
+  }
+  function flashWrong(square) {
+    const el = sq(square);
+    if (!el) return;
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 700);
+  }
+  function clearSelection() {
+    selected = null;
+    clearClass('selected');
+    clearClass('target');
+  }
+  function selectSquare(square) {
+    clearSelection();
+    selected = square;
+    sq(square) && sq(square).classList.add('selected');
+    game.moves({ square: square, verbose: true }).forEach(m => { const el = sq(m.to); if (el) el.classList.add('target'); });
+  }
+
+  // click-to-move (oltre al drag & drop)
+  let press = null;
+  function pointFromEvent(e, end) {
+    const t = end ? (e.changedTouches && e.changedTouches[0]) : (e.touches && e.touches[0]);
+    return t ? { x: t.clientX, y: t.clientY } : { x: e.clientX, y: e.clientY };
+  }
+  function onPressStart(e) {
+    const node = e.target.closest('.square-55d63');
+    if (!node) { press = null; return; }
+    press = { square: node.getAttribute('data-square'), ...pointFromEvent(e, false) };
+  }
+  function onPressEnd(e) {
+    if (!press) return;
+    const p = pointFromEvent(e, true);
+    const square = press.square;
+    const moved = Math.abs(p.x - press.x) > 8 || Math.abs(p.y - press.y) > 8;
+    press = null;
+    if (moved || !canMove()) return;
+    const piece = game.get(square);
+    if (piece && piece.color === puzzle.player_color) {
+      if (selected === square) clearSelection(); else selectSquare(square);
+      return;
+    }
+    if (selected) {
+      const from = selected;
+      clearSelection();
+      tryUserMove(from, square);
+    }
+  }
+  const boardEl = $('board');
+  boardEl.addEventListener('mousedown', onPressStart, true);
+  boardEl.addEventListener('touchstart', onPressStart, { capture: true, passive: true });
+  document.addEventListener('mouseup', onPressEnd);
+  document.addEventListener('touchend', onPressEnd);
+
+  // ---------- Logica puzzle ----------
+  function canMove() {
+    return puzzle && !finished && !busy && game.turn() === puzzle.player_color;
+  }
+  function uciObj(uci) {
+    return { from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.length > 4 ? uci[4] : undefined };
+  }
+  function sanOf(fen, uci) {
+    const tmp = new Chess(fen);
+    const m = tmp.move(uciObj(uci));
+    return m ? m.san : uci;
+  }
+  function setFeedback(text, cls) {
+    feedbackEl.textContent = text || '';
+    feedbackEl.className = cls || '';
+  }
+  function playMove(uci) {
+    const m = game.move(uciObj(uci));
+    if (m) {
+      board.position(game.fen());
+      markLastMove([m.from, m.to]);
+    }
+    return m;
+  }
+
+  function tryUserMove(from, to) {
+    if (!canMove()) return false;
+    const expected = puzzle.moves[idx];
+    const promo = expected && expected.slice(0, 4) === from + to && expected.length > 4 ? expected[4] : 'q';
+    const fenBefore = game.fen();
+    const mv = game.move({ from: from, to: to, promotion: promo });
+    if (!mv) return false;
+
+    const uci = mv.from + mv.to + (mv.promotion && expected.length > 4 ? mv.promotion : '');
+    if (uci === expected || game.in_checkmate()) {
+      idx++;
+      clearClass('hint-from');
+      board.position(game.fen(), false);
+      markLastMove([mv.from, mv.to]);
+      if (idx >= puzzle.moves.length || game.in_checkmate()) {
+        finishPuzzle(failed ? 'done' : 'solved');
+        return true;
+      }
+      setFeedback(`Giusto: ${mv.san}. Continua...`, 'ok');
+      busy = true;
+      setTimeout(() => {
+        playMove(puzzle.moves[idx]);
+        idx++;
+        busy = false;
+        if (idx >= puzzle.moves.length) finishPuzzle(failed ? 'done' : 'solved');
+      }, 380);
+      return true;
+    }
+
+    // mossa sbagliata
+    game.undo();
+    setTimeout(() => board.position(game.fen(), false), 0);
+    flashWrong(to);
+    if (!failed) {
+      failed = true;
+      sendResult(false, { wrong_move: mv.san, expected_move: sanOf(fenBefore, expected), error_fen: fenBefore });
+    }
+    setFeedback(`${mv.san} non funziona. Riprova o guarda la soluzione.`, 'bad');
+    return false;
+  }
+
+  function sendResult(success, extra) {
+    if (resultPromise) return resultPromise;
+    const payload = Object.assign({
+      puzzle_id: puzzle.id,
+      success: success,
+      time_ms: Date.now() - startTime,
+      move_index: idx,
+      hint_used: hintUsed,
+    }, extra || {});
+    resultPromise = fetch(URL_RESULT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify(payload),
+    }).then(r => r.json()).then(data => {
+      resultData = data;
+      if (data && data.ok) {
+        $('userRating').textContent = data.rating;
+        const d = data.rating_delta || 0;
+        const deltaEl = $('ratingDelta');
+        deltaEl.textContent = d ? (d > 0 ? `+${d}` : `${d}`) : '';
+        deltaEl.className = 'delta ' + (d > 0 ? 'up' : 'down');
+      }
+      return data;
+    }).catch(err => { console.warn('Risultato non salvato', err); return null; });
+    return resultPromise;
+  }
+
+  function finishPuzzle(outcome) {
+    finished = true;
+    clearSelection();
+    hintBtn.disabled = true;
+    solutionBtn.disabled = true;
+    nextBtn.hidden = false;
+    $('puzzleRating').textContent = puzzle.rating;
+    session.done++;
+    if (outcome === 'solved') {
+      session.solved++;
+      session.streak++;
+      setFeedback('Risolto!', 'ok');
+      promptEl.textContent = 'Ottimo!';
+      sendResult(true);
+    } else {
+      session.streak = 0;
+      if (outcome === 'shown') {
+        setFeedback('Questa era la soluzione. Il puzzle tornerà in ripasso domani.', 'bad');
+      } else {
+        setFeedback('Completato, ma con errori: tornerà in ripasso domani.', 'bad');
+      }
+      promptEl.textContent = 'Puzzle concluso';
+    }
+    $('streak').textContent = session.streak;
+    $('sessionMeta').textContent = `Sessione: ${session.solved}/${session.done}`;
+    resultPromise.then(() => {
+      if (puzzle.quiz_options.length && !THEME) showQuiz(); else showThemes();
+    });
+    nextBtn.focus();
+  }
+
+  function showQuiz() {
+    const box = $('quizOptions');
+    box.innerHTML = '';
+    $('quizResult').textContent = '';
+    $('quizSkip').hidden = false;
+    puzzle.quiz_options.forEach(opt => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = opt.nome;
+      b.dataset.key = opt.key;
+      b.addEventListener('click', () => answerQuiz(opt.key));
+      box.appendChild(b);
+    });
+    quizCard.hidden = false;
+  }
+
+  function answerQuiz(key) {
+    const themeKeys = ((resultData && resultData.themes) || []).map(t => t.key);
+    const correct = themeKeys.includes(key);
+    document.querySelectorAll('#quizOptions button').forEach(b => {
+      b.disabled = true;
+      if (b.dataset.key === key) b.classList.add(correct ? 'correct' : 'wrong');
+      if (!correct && b.dataset.key === puzzle.quiz_target) b.classList.add('correct');
+    });
+    $('quizSkip').hidden = true;
+    $('quizResult').textContent = correct ? 'Esatto, l\'hai riconosciuto!' : 'Non proprio: guarda qui sotto come riconoscerlo.';
+    $('quizResult').style.color = correct ? '#22c55e' : '#ef4444';
+    if (resultData && resultData.attempt_id) {
+      fetch(URL_GUESS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ attempt_id: resultData.attempt_id, guess: key, target: puzzle.quiz_target }),
+      }).catch(() => {});
+    }
+    showThemes();
+  }
+
+  function showThemes() {
+    const list = $('themesList');
+    list.innerHTML = '';
+    const themes = (resultData && resultData.themes) || [];
+    if (!themes.length) {
+      list.innerHTML = '<p class="ta-theme">Nessun tema specifico: vantaggio materiale o posizionale.</p>';
+    }
+    themes.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'ta-theme';
+      const title = document.createElement('strong');
+      title.textContent = t.nome;
+      const p = document.createElement('p');
+      p.textContent = t.descrizione;
+      const ul = document.createElement('ul');
+      t.segnali.forEach(s => { const li = document.createElement('li'); li.textContent = s; ul.appendChild(li); });
+      div.append(title, p, ul);
+      list.appendChild(div);
+    });
+    $('lichessLink').href = puzzle.lichess_url;
+    themesCard.hidden = false;
+  }
+
+  function showSolution() {
+    if (!puzzle || finished || busy) return;
+    if (!failed) {
+      failed = true;
+      sendResult(false, {
+        solution_shown: true,
+        expected_move: sanOf(game.fen(), puzzle.moves[idx]),
+        error_fen: game.fen(),
+      });
+    }
+    busy = true;
+    clearSelection();
+    const step = () => {
+      if (idx >= puzzle.moves.length) {
+        busy = false;
+        finishPuzzle('shown');
+        return;
+      }
+      playMove(puzzle.moves[idx]);
+      idx++;
+      setTimeout(step, 750);
+    };
+    step();
+  }
+
+  function showHint() {
+    if (!canMove()) return;
+    const from = puzzle.moves[idx].slice(0, 2);
+    const el = sq(from);
+    if (el) el.classList.add('hint-from');
+    if (!failed) {
+      hintUsed = true;
+      failed = true;
+      sendResult(false, { expected_move: sanOf(game.fen(), puzzle.moves[idx]), error_fen: game.fen() });
+    }
+    setFeedback('Muovi il pezzo evidenziato.', '');
+  }
+
+  function resetUi() {
+    failed = false; finished = false; hintUsed = false; busy = false;
+    idx = 0; resultPromise = null; resultData = null;
+    clearSelection();
+    clearClass('hint-from');
+    quizCard.hidden = true;
+    themesCard.hidden = true;
+    emptyCard.hidden = true;
+    nextBtn.hidden = true;
+    hintBtn.disabled = false;
+    solutionBtn.disabled = false;
+    $('puzzleRating').textContent = '?';
+    $('ratingDelta').textContent = '';
+    setFeedback('');
+  }
+
+  function startPuzzle(p) {
+    puzzle = p;
+    resetUi();
+    game = new Chess(p.fen);
+    board.orientation(p.player_color === 'w' ? 'white' : 'black');
+    board.position(p.fen, false);
+    markLastMove([]);
+    turnDot.className = 'ta-dot ' + p.player_color;
+    promptEl.textContent = `Tocca al ${COLOR_NAME[p.player_color]}`;
+    const label = { ripasso: 'Ripasso', deboli: 'Punto debole', singolo: 'Puzzle', misto: 'Nuovo' }[p.mode] || 'Puzzle';
+    $('puzzleMeta').textContent = `${label} · #${p.lichess_id}`;
+    busy = true;
+    setTimeout(() => {
+      playMove(p.moves[0]);
+      idx = 1;
+      busy = false;
+      startTime = Date.now();
+      setFeedback('Trova la mossa migliore.', '');
+    }, 550);
+  }
+
+  function showEmpty(msg) {
+    puzzle = null;
+    resetUi();
+    hintBtn.disabled = true;
+    solutionBtn.disabled = true;
+    promptEl.textContent = 'Niente da allenare qui';
+    $('emptyMsg').textContent = msg;
+    emptyCard.hidden = false;
+  }
+
+  let loading = false;
+  async function loadNext() {
+    if (loading) return;
+    loading = true;
+    if (puzzle) seen.push(puzzle.id);
+    const params = new URLSearchParams({ mode: MODE });
+    if (THEME) params.set('tema', THEME);
+    if (seen.length) params.set('exclude', seen.slice(-200).join(','));
+    if (initialPuzzleId) { params.set('puzzle', initialPuzzleId); initialPuzzleId = ''; }
+    try {
+      const resp = await fetch(URL_NEXT + '?' + params.toString());
+      const data = await resp.json();
+      if (data.puzzle) startPuzzle(data.puzzle); else showEmpty(data.message || 'Nessun puzzle disponibile.');
+    } catch (err) {
+      showEmpty('Errore nel caricamento del puzzle.');
+    } finally {
+      loading = false;
+    }
+  }
+
+  hintBtn.addEventListener('click', showHint);
+  solutionBtn.addEventListener('click', showSolution);
+  nextBtn.addEventListener('click', loadNext);
+  $('quizSkip').addEventListener('click', () => { quizCard.hidden = true; showThemes(); });
+  $('themeSelect').addEventListener('change', e => {
+    const params = new URLSearchParams({ mode: MODE === 'deboli' ? 'misto' : MODE });
+    if (e.target.value) params.set('tema', e.target.value);
+    window.location.search = params.toString();
+  });
+  document.addEventListener('keydown', e => {
+    if (!finished || e.target.tagName === 'SELECT') return;
+    if (e.key === 'Enter' || e.key === 'ArrowRight') { e.preventDefault(); loadNext(); }
+  });
+
+  sizeBoard();
+  loadNext();
+})();
+</script>
+{% endblock %}

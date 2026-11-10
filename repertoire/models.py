@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 DIFFICOLTA_CHOICES = [
@@ -195,3 +196,61 @@ class FinaleLineMistake(MistakeBase):
 
     def __str__(self):
         return f"{self.line.capitolo.nome} - {self.expected_move} vs {self.wrong_move}"
+
+
+class Puzzle(models.Model):
+    """Puzzle tattico in formato Lichess: `fen` è la posizione prima della mossa avversaria,
+    `moves` (UCI) inizia con quella mossa e prosegue con la soluzione."""
+
+    lichess_id = models.CharField(max_length=16, unique=True)
+    fen = models.TextField()
+    moves = models.TextField()
+    rating = models.PositiveIntegerField(default=1500, db_index=True)
+    themes = models.CharField(max_length=400, blank=True, default="")
+    game_url = models.CharField(max_length=200, blank=True, default="")
+    opening_tags = models.CharField(max_length=200, blank=True, default="")
+    source = models.CharField(max_length=20, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    attempt_count = models.PositiveIntegerField(default=0)
+    success_count = models.PositiveIntegerField(default=0)
+    fail_count = models.PositiveIntegerField(default=0)
+    last_attempt_at = models.DateTimeField(blank=True, null=True)
+    review_streak = models.PositiveIntegerField(default=0)
+    due_at = models.DateTimeField(blank=True, null=True, db_index=True)
+
+    class Meta:
+        ordering = ["rating", "id"]
+
+    def __str__(self):
+        return f"Puzzle {self.lichess_id} ({self.rating})"
+
+    @property
+    def lichess_url(self):
+        return f"https://lichess.org/training/{self.lichess_id}"
+
+
+class PuzzleAttempt(models.Model):
+    puzzle = models.ForeignKey(Puzzle, on_delete=models.CASCADE, related_name="attempts")
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    success = models.BooleanField(default=False)
+    first_attempt = models.BooleanField(default=True)
+    is_review = models.BooleanField(default=False)
+    solution_shown = models.BooleanField(default=False)
+    hint_used = models.BooleanField(default=False)
+    time_ms = models.PositiveIntegerField(blank=True, null=True)
+    wrong_move = models.CharField(max_length=20, blank=True, default="")
+    expected_move = models.CharField(max_length=20, blank=True, default="")
+    error_fen = models.TextField(blank=True, default="")
+    move_index = models.PositiveIntegerField(default=0)
+    rating_after = models.IntegerField(blank=True, null=True)
+    guess_theme = models.CharField(max_length=40, blank=True, default="")
+    guess_target = models.CharField(max_length=40, blank=True, default="")
+    guess_correct = models.BooleanField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        esito = "ok" if self.success else "errore"
+        return f"{self.puzzle.lichess_id} - {esito}"
